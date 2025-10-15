@@ -1,0 +1,23 @@
+[wokwi]
+version = 1
+firmware = 'co2-sensor-simple.ino'
+diagram = 'diagram.json'
+
+# Serial port forwarding for debugging
+rfc2217ServerPort = 4000
+
+# IoT Gateway configuration for ESP32 WiFi
+# Forward local port 8180 to port 80 on the simulated ESP32
+[[net.forward]]
+from = "localhost:8180"
+to = "target:80"
+
+# Forward backend API port for sensor data transmission
+[[net.forward]]
+from = "localhost:3000"
+to = "target:3000"
+
+# Additional port forwarding for development
+[[net.forward]]
+from = "localhost:8080"
+to = "target:8080"

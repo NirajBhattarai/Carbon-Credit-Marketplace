@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "author": "Carbon Credit Marketplace",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-esp32-devkit-v1",
+      "id": "esp32",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-mq135",
+      "id": "co2-sensor",
+      "top": 0,
+      "left": 200,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": 100,
+      "left": 100,
+      "attrs": {
+        "color": "red"
+      }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "buzzer1",
+      "top": 100,
+      "left": 200,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht22",
+      "top": 0,
+      "left": 300,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [
+      "esp32:GPIO2",
+      "led1:1",
+      "red"
+    ],
+    [
+      "esp32:GPIO3",
+      "buzzer1:1",
+      "green"
+    ],
+    [
+      "esp32:GND",
+      "buzzer1:2",
+      "black"
+    ],
+    [
+      "esp32:A0",
+      "co2-sensor:AO",
+      "blue"
+    ],
+    [
+      "esp32:5V",
+      "co2-sensor:VCC",
+      "red"
+    ],
+    [
+      "esp32:GND",
+      "co2-sensor:GND",
+      "black"
+    ],
+    [
+      "esp32:GPIO4",
+      "dht22:1",
+      "green"
+    ],
+    [
+      "esp32:5V",
+      "dht22:2",
+      "red"
+    ],
+    [
+      "esp32:GND",
+      "dht22:3",
+      "black"
+    ]
+  ],
+  "dependencies": {
+    "wokwi-esp32-devkit-v1": "^1.0.0",
+    "wokwi-mq135": "^1.0.0",
+    "wokwi-led": "^1.0.0",
+    "wokwi-buzzer": "^1.0.0",
+    "wokwi-dht22": "^1.0.0"
+  }
+}
