@@ -1,0 +1,9 @@
+# Wokwi Configuration
+# See https://docs.wokwi.com/guides/libraries
+
+[wokwi]
+firmware = "carbon-credit-creator.ino"
+libraries = [
+  "Adafruit GFX Library",
+  "Adafruit SSD1306"
+]
