@@ -1,6 +1,9 @@
 import { pgTable, text, timestamp, boolean, json, integer, pgEnum, serial, decimal, uuid } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
+// Helper function to generate UUID
+const generateId = () => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+
 // Enums
 export const deviceTypeEnum = pgEnum('device_type', ['CREATOR', 'BURNER'])
 export const transactionTypeEnum = pgEnum('transaction_type', ['MINT', 'BURN'])
@@ -11,7 +14,7 @@ export const apiKeyStatusEnum = pgEnum('api_key_status', ['ACTIVE', 'INACTIVE', 
 
 // Users Table
 export const users = pgTable('users', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  id: text('id').primaryKey().$defaultFn(generateId),
   walletAddress: text('wallet_address').notNull().unique(),
   username: text('username').unique(),
   email: text('email').unique(),
@@ -31,24 +34,12 @@ export const applications = pgTable('applications', {
   website: text('website'),
   status: applicationStatusEnum('status').notNull().default('ACTIVE'),
   metadata: json('metadata'),
+  // Single API Key field
+  apiKey: text('api_key').unique(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 
-// API Keys Table
-export const apiKeys = pgTable('api_keys', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  applicationId: text('application_id').notNull(),
-  keyHash: text('key_hash').notNull().unique(),
-  keyPrefix: text('key_prefix').notNull(),
-  name: text('name').notNull(),
-  status: apiKeyStatusEnum('status').notNull().default('ACTIVE'),
-  lastUsed: timestamp('last_used'),
-  expiresAt: timestamp('expires_at'),
-  permissions: json('permissions'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-})
 
 // IoT Devices Table
 export const iotDevices = pgTable('iot_devices', {
@@ -104,15 +95,7 @@ export const applicationsRelations = relations(applications, ({ one, many }) => 
     fields: [applications.userId],
     references: [users.id],
   }),
-  apiKeys: many(apiKeys),
   iotDevices: many(iotDevices),
-}))
-
-export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
-  application: one(applications, {
-    fields: [apiKeys.applicationId],
-    references: [applications.id],
-  }),
 }))
 
 export const iotDevicesRelations = relations(iotDevices, ({ one, many }) => ({
@@ -143,8 +126,6 @@ export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
 export type Application = typeof applications.$inferSelect
 export type NewApplication = typeof applications.$inferInsert
-export type ApiKey = typeof apiKeys.$inferSelect
-export type NewApiKey = typeof apiKeys.$inferInsert
 export type IoTDevice = typeof iotDevices.$inferSelect
 export type NewIoTDevice = typeof iotDevices.$inferInsert
 export type DeviceData = typeof deviceData.$inferSelect

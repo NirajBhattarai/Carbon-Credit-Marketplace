@@ -1,4 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next'
+import { db } from '@/lib/db'
+import { users } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 
 /**
  * POST /api/auth/login
@@ -17,36 +20,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     }
     
-    // For now, let's create a simple user object without database operations
-    // This will help us test the JWT generation
-    const mockUser = {
-      id: `user_${Date.now()}`,
-      walletAddress,
-      username: username || `user_${walletAddress.slice(0, 8)}`,
-      email: email || null,
-      role: 'USER' as const,
-      isVerified: false,
-      createdAt: new Date().toISOString()
+    // Check if user already exists
+    let user = await db.select().from(users).where(eq(users.walletAddress, walletAddress)).limit(1)
+    
+    if (user.length === 0) {
+      // Create new user
+      const newUser = await db.insert(users).values({
+        walletAddress,
+        username: username || `user_${walletAddress.slice(0, 8)}`,
+        email: email || null,
+        role: 'USER',
+        isVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning()
+      
+      user = newUser
+    } else {
+      // Update last seen timestamp
+      await db.update(users)
+        .set({ updatedAt: new Date() })
+        .where(eq(users.id, user[0].id))
     }
+    
+    const userData = user[0]
     
     // Generate JWT token
     const { generateJWT } = await import('@/lib/auth/jwt')
     const token = generateJWT({
-      userId: mockUser.id,
-      walletAddress: mockUser.walletAddress,
-      role: mockUser.role
+      userId: userData.id,
+      walletAddress: userData.walletAddress,
+      role: userData.role
     })
     
     return res.status(200).json({
       success: true,
       token,
       user: {
-        id: mockUser.id,
-        walletAddress: mockUser.walletAddress,
-        username: mockUser.username,
-        email: mockUser.email,
-        role: mockUser.role,
-        isVerified: mockUser.isVerified
+        id: userData.id,
+        walletAddress: userData.walletAddress,
+        username: userData.username,
+        email: userData.email,
+        role: userData.role,
+        isVerified: userData.isVerified
       }
     })
     

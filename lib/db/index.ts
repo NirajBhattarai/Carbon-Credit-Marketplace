@@ -7,7 +7,9 @@ import { eq, desc, and, or, asc, sql } from 'drizzle-orm'
 const connectionString = process.env.DATABASE_URL!
 
 // Disable prefetch as it is not supported for "Transaction" pool mode
-const client = postgres(connectionString, { prepare: false })
+// Remove schema parameter from connection string if present
+const cleanConnectionString = connectionString.replace(/\?schema=.*$/, '')
+const client = postgres(cleanConnectionString, { prepare: false })
 export const db = drizzle(client, { schema })
 
 // Export schema for use in other files

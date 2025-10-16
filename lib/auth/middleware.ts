@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { NextApiRequest, NextApiResponse } from 'next'
 import { verifyJWT, verifyApiKeyJWT, extractTokenFromHeader } from './jwt'
 import { db } from '@/lib/db'
 import { users, apiKeys, applications } from '@/lib/db/schema'
 import { eq, and } from 'drizzle-orm'
 
 export interface AuthenticatedRequest extends NextRequest {
+  user?: {
+    id: string
+    walletAddress: string
+    role: string
+  }
+  application?: {
+    id: string
+    userId: string
+    name: string
+  }
+}
+
+export interface AuthenticatedApiRequest extends NextApiRequest {
   user?: {
     id: string
     walletAddress: string
@@ -39,13 +53,30 @@ export async function authenticateJWT(request: NextRequest): Promise<NextRespons
     )
   }
   
-  // Verify user exists in database
-  const user = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1)
+  // Verify user exists in database, create if not found
+  let user = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1)
+  
   if (user.length === 0) {
-    return NextResponse.json(
-      { error: 'User not found' },
-      { status: 401 }
-    )
+    // Create user if they don't exist
+    try {
+      const newUser = await db.insert(users).values({
+        id: payload.userId,
+        walletAddress: payload.walletAddress,
+        username: `user_${payload.walletAddress.slice(0, 8)}`,
+        role: (payload.role as 'USER' | 'DEVELOPER' | 'ADMIN') || 'USER',
+        isVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning()
+      
+      user = newUser
+    } catch (error) {
+      console.error('Error creating user:', error)
+      return NextResponse.json(
+        { error: 'Failed to create user' },
+        { status: 500 }
+      )
+    }
   }
   
   // Add user info to request
@@ -187,4 +218,180 @@ export function getAuthenticatedUser(request: NextRequest) {
  */
 export function getAuthenticatedApplication(request: NextRequest) {
   return (request as AuthenticatedRequest).application
+}
+
+// Pages Router compatible authentication functions
+
+/**
+ * Middleware to authenticate JWT tokens for Pages Router
+ */
+export async function authenticateJWTPages(request: NextApiRequest): Promise<{ status: number; data: any } | null> {
+  console.log(`[Auth Middleware] Starting authentication...`)
+  const authHeader = request.headers.authorization
+  console.log(`[Auth Middleware] Authorization header:`, authHeader ? 'Bearer ***' : 'none')
+  
+  const token = extractTokenFromHeader(authHeader)
+  console.log(`[Auth Middleware] Extracted token:`, token ? 'present' : 'missing')
+  
+  if (!token) {
+    console.log(`[Auth Middleware] No token found in authorization header`)
+    return {
+      status: 401,
+      data: { error: 'Authorization token required' }
+    }
+  }
+  
+  console.log(`[Auth Middleware] Verifying JWT token...`)
+  const payload = verifyJWT(token)
+  if (!payload) {
+    console.log(`[Auth Middleware] JWT verification failed`)
+    return {
+      status: 401,
+      data: { error: 'Invalid or expired token' }
+    }
+  }
+  
+  console.log(`[Auth Middleware] JWT verified successfully for user:`, payload.userId)
+  
+  // Verify user exists in database, create if not found
+  console.log(`[Auth Middleware] Looking up user in database:`, payload.userId)
+  let user = await db.select().from(users).where(eq(users.id, payload.userId)).limit(1)
+  
+  if (user.length === 0) {
+    console.log(`[Auth Middleware] User not found, creating new user:`, payload.userId)
+    // Create user if they don't exist
+    try {
+      const newUser = await db.insert(users).values({
+        id: payload.userId,
+        walletAddress: payload.walletAddress,
+        username: `user_${payload.walletAddress.slice(0, 8)}`,
+        role: (payload.role as 'USER' | 'DEVELOPER' | 'ADMIN') || 'USER',
+        isVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }).returning()
+      
+      console.log(`[Auth Middleware] User created successfully:`, newUser[0].id)
+      user = newUser
+    } catch (error) {
+      console.error(`[Auth Middleware] Error creating user:`, {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        userId: payload.userId,
+        walletAddress: payload.walletAddress
+      })
+      return {
+        status: 500,
+        data: { error: 'Failed to create user' }
+      }
+    }
+  } else {
+    console.log(`[Auth Middleware] User found in database:`, user[0].id)
+  }
+  
+  // Add user info to request
+  ;(request as AuthenticatedApiRequest).user = {
+    id: payload.userId,
+    walletAddress: payload.walletAddress,
+    role: payload.role
+  }
+  
+  return null
+}
+
+/**
+ * Middleware to authenticate API keys for Pages Router
+ */
+export async function authenticateApiKeyPages(request: NextApiRequest): Promise<{ status: number; data: any } | null> {
+  const authHeader = request.headers.authorization
+  const token = extractTokenFromHeader(authHeader)
+  
+  if (!token) {
+    return {
+      status: 401,
+      data: { error: 'API key required' }
+    }
+  }
+  
+  const payload = verifyApiKeyJWT(token)
+  if (!payload) {
+    return {
+      status: 401,
+      data: { error: 'Invalid or expired API key' }
+    }
+  }
+  
+  // Verify API key exists and is active
+  const apiKey = await db
+    .select({
+      id: apiKeys.id,
+      status: apiKeys.status,
+      expiresAt: apiKeys.expiresAt,
+      application: {
+        id: applications.id,
+        userId: applications.userId,
+        name: applications.name,
+        status: applications.status
+      }
+    })
+    .from(apiKeys)
+    .innerJoin(applications, eq(apiKeys.applicationId, applications.id))
+    .where(eq(apiKeys.id, payload.applicationId))
+    .limit(1)
+  
+  if (apiKey.length === 0) {
+    return {
+      status: 401,
+      data: { error: 'API key not found' }
+    }
+  }
+  
+  const key = apiKey[0]
+  
+  // Check if API key is active
+  if (key.status !== 'ACTIVE') {
+    return {
+      status: 401,
+      data: { error: 'API key is not active' }
+    }
+  }
+  
+  // Check if API key is expired
+  if (key.expiresAt && new Date() > key.expiresAt) {
+    return {
+      status: 401,
+      data: { error: 'API key has expired' }
+    }
+  }
+  
+  // Check if application is active
+  if (key.application.status !== 'ACTIVE') {
+    return {
+      status: 401,
+      data: { error: 'Application is not active' }
+    }
+  }
+  
+  // Add application info to request
+  ;(request as AuthenticatedApiRequest).application = {
+    id: key.application.id,
+    userId: key.application.userId,
+    name: key.application.name
+  }
+  
+  return null
+}
+
+/**
+ * Helper function to get authenticated user from Pages Router request
+ */
+export function getAuthenticatedUserPages(request: NextApiRequest) {
+  return (request as AuthenticatedApiRequest).user
+}
+
+/**
+ * Helper function to get authenticated application from Pages Router request
+ */
+export function getAuthenticatedApplicationPages(request: NextApiRequest) {
+  return (request as AuthenticatedApiRequest).application
 }

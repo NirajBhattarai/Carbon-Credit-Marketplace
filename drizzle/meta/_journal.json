@@ -1,1 +1,27 @@
-{"version":"5","dialect":"pg","entries":[]}
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1760614779689,
+      "tag": "0000_outgoing_hardball",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1760616456806,
+      "tag": "0001_yielding_night_nurse",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1760616655293,
+      "tag": "0002_green_gateway",
+      "breakpoints": true
+    }
+  ]
+}
