@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/Button'
-import { useUser } from '@/lib/context'
+import { CustomConnectButton, WalletInfo } from '@/components/ConnectButton'
+import { useAccount } from 'wagmi'
 import { APP_CONFIG, DESIGN_SYSTEM } from '@/lib/constants'
 
 interface NavigationItem {
@@ -23,7 +24,7 @@ const navigationItems: NavigationItem[] = [
 
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const { user, isWalletConnected, connectWallet, isLoading } = useUser()
+  const { isConnected } = useAccount()
 
   return (
     <nav className="bg-white/95 backdrop-blur-md border-b border-gray-200/50 sticky top-0 z-50 shadow-sm">
@@ -83,34 +84,7 @@ export function Navigation() {
             </div>
 
             {/* Wallet Connect */}
-            {!isWalletConnected ? (
-              <Button
-                onClick={connectWallet}
-                isLoading={isLoading}
-                variant="primary"
-                size="md"
-                className="bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                {isLoading ? 'Connecting...' : 'Connect Wallet'}
-              </Button>
-            ) : (
-              <div className="flex items-center space-x-3 bg-emerald-50 rounded-xl px-4 py-2 border border-emerald-200">
-                <div className="text-right">
-                  <div className="text-sm font-semibold text-gray-900">{user?.name}</div>
-                  <div className="text-xs text-emerald-600 font-medium">{user?.stats.totalCredits} ECO</div>
-                </div>
-                <Link href="/profile" className="flex items-center space-x-2 group">
-                  <div className="relative">
-                    <img
-                      src={user?.avatar}
-                      alt="Profile"
-                      className="w-8 h-8 rounded-full border-2 border-emerald-200 group-hover:border-emerald-400 transition-colors"
-                    />
-                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white"></div>
-                  </div>
-                </Link>
-              </div>
-            )}
+            <CustomConnectButton />
 
             {/* Mobile menu button */}
             <button

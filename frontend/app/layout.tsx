@@ -5,6 +5,8 @@ import { AppProvider } from '@/lib/context'
 import { Navigation } from '@/components/layout/Navigation'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastProvider } from '@/components/Toast'
+import { headers } from 'next/headers'
+import ContextProvider from '@/context'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -51,11 +53,14 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const headersObj = await headers()
+  const cookies = headersObj.get('cookie')
+
   return (
     <html lang="en" className="scroll-smooth">
       <head>
@@ -71,14 +76,16 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <ErrorBoundary>
-          <AppProvider>
-            <ToastProvider>
-              <Navigation />
-              <main className="min-h-screen">
-                {children}
-              </main>
-            </ToastProvider>
-          </AppProvider>
+          <ContextProvider cookies={cookies}>
+            <AppProvider>
+              <ToastProvider>
+                <Navigation />
+                <main className="min-h-screen">
+                  {children}
+                </main>
+              </ToastProvider>
+            </AppProvider>
+          </ContextProvider>
         </ErrorBoundary>
       </body>
     </html>
