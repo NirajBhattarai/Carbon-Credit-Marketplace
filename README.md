@@ -6,9 +6,9 @@ A comprehensive carbon credit trading platform that combines blockchain technolo
 
 This project implements a complete carbon credit ecosystem featuring:
 - **Smart Contracts**: Blockchain-based carbon credit tokenization and trading
-- **IoT Integration**: Real-time environmental monitoring and data collection
 - **Web Application**: User-friendly marketplace interface
 - **Data Analytics**: Comprehensive tracking and reporting of carbon credits
+- **IoT Integration**: Real-time environmental monitoring and data collection (separate repository)
 
 ## 📁 Project Structure
 
@@ -22,7 +22,7 @@ carbon-credit-marketplace/
 │   ├── test/                # Contract tests
 │   ├── scripts/             # Deployment scripts
 │   ├── ignition/            # Hardhat Ignition modules
-│   └── platformio.ini       # Hardhat configuration
+│   └── hardhat.config.ts    # Hardhat configuration
 │
 ├── frontend/                 # Next.js Web Application
 │   ├── app/                 # App Router pages
@@ -45,28 +45,6 @@ carbon-credit-marketplace/
 │   │   └── iot/             # IoT data endpoints
 │   └── config/              # App configuration
 │
-├── iot/                     # IoT Projects (PlatformIO)
-│   ├── CarbonCredit/        # Main monitoring device
-│   │   ├── src/
-│   │   │   ├── main.cpp     # Main application code
-│   │   │   └── secrets.h    # WiFi & Firebase credentials
-│   │   ├── platformio.ini   # PlatformIO configuration
-│   │   └── wokwi.toml       # Wokwi simulator config
-│   │
-│   ├── creator/             # Carbon credit creator device
-│   │   ├── src/
-│   │   │   ├── main.cpp     # Creator application
-│   │   │   └── secrets.h    # Configuration
-│   │   ├── platformio.ini   # PlatformIO setup
-│   │   └── wokwi.toml       # Simulator config
-│   │
-│   └── burner/              # Carbon credit burner device
-│       ├── src/
-│       │   ├── main.cpp     # Burner application
-│       │   └── secrets.h    # Configuration
-│       ├── platformio.ini   # PlatformIO setup
-│       └── wokwi.toml       # Simulator config
-│
 ├── init-scripts/            # Database initialization
 │   └── 01-init-db.sh        # Database setup script
 │
@@ -76,12 +54,25 @@ carbon-credit-marketplace/
 └── README.md               # This file
 ```
 
+## 🔗 Related Projects
+
+### IoT Simulator Repository
+The IoT components for environmental monitoring and carbon credit simulation have been moved to a separate repository for better organization and independent development:
+
+**🔗 [Carbon Credit IoT Simulator v1](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1)**
+
+This repository contains:
+- **ESP32 IoT Devices**: CarbonCredit, Creator, and Burner devices
+- **PlatformIO Projects**: Complete ESP32 development environment
+- **MQTT Integration**: Real-time data transmission with Docker setup
+- **Firebase Integration**: Cloud data synchronization
+- **Sensor Simulation**: Environmental monitoring and carbon credit generation
+- **Comprehensive Documentation**: Setup guides and troubleshooting
+
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- Python 3.8+
-- PlatformIO CLI
 - Docker & Docker Compose
 - Git
 
@@ -106,17 +97,7 @@ npm install
 npm run dev
 ```
 
-### 4. IoT Development
-```bash
-# Install PlatformIO CLI
-pip install platformio
-
-# Build and upload to ESP32
-cd iot/CarbonCredit
-pio run --target upload
-```
-
-### 5. Database Setup
+### 3. Database Setup
 ```bash
 docker-compose up -d
 ./init-scripts/01-init-db.sh
@@ -145,26 +126,11 @@ docker-compose up -d
 - NFT marketplace interface
 - User profile management
 - Real-time trading
-- IoT data visualization
+- IoT data visualization (via API)
 - Collection management
 
-### IoT Integration (`iot/`)
-- **ESP32** microcontrollers
-- **PlatformIO** development environment
-- **Firebase** cloud integration
-- **OLED displays** for local monitoring
-
-**Device Types:**
-1. **CarbonCredit**: Main monitoring device with Firebase integration
-2. **Creator**: Generates carbon credits based on environmental data
-3. **Burner**: Consumes credits to offset emissions
-
-**Key Features:**
-- Real-time environmental monitoring
-- WiFi connectivity with Google DNS
-- Firebase cloud data synchronization
-- OLED display for local status
-- Sensor data validation and processing
+### IoT Integration
+IoT components are now managed in a separate repository for better organization and independent development. See the [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1) for complete ESP32 projects with PlatformIO, MQTT, and Firebase integration.
 
 ## 🔧 Development
 
@@ -182,14 +148,6 @@ cd frontend
 npm run dev                 # Start development server
 npm run build              # Build for production
 npm run lint               # Run ESLint
-```
-
-### IoT Development
-```bash
-cd iot/[project-name]
-pio run                    # Build project
-pio run --target upload    # Upload to device
-pio device monitor         # Monitor serial output
 ```
 
 ## 🌐 API Endpoints
@@ -210,18 +168,13 @@ DATABASE_URL=your_database_url
 NEXT_PUBLIC_API_URL=your_api_url
 ```
 
-**IoT** (`iot/[project]/src/secrets.h`):
-```cpp
-#define WIFI_SSID "your_wifi_ssid"
-#define WIFI_PASSWORD "your_wifi_password"
-#define DATABASE_URL "your_firebase_url"
-```
+**IoT Configuration**: See the [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1) for ESP32 and MQTT configuration details.
 
 ## 📊 Data Flow
 
-1. **IoT Sensors** collect environmental data (CO2, humidity, etc.)
-2. **ESP32 Devices** process and validate sensor readings
-3. **Firebase** stores real-time IoT data
+1. **IoT Sensors** collect environmental data (CO2, humidity, etc.) - *See [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1)*
+2. **ESP32 Devices** process and validate sensor readings - *See [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1)*
+3. **MQTT/Firebase** stores real-time IoT data - *See [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1)*
 4. **Smart Contracts** verify data and mint carbon credit NFTs
 5. **Web Application** displays marketplace and trading interface
 6. **Users** can buy, sell, and trade carbon credit NFTs
@@ -241,14 +194,14 @@ npm run test
 ```
 
 ### IoT Devices
-Use Wokwi simulator or physical ESP32 devices for testing.
+IoT device testing is covered in the [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1). Use Wokwi simulator or physical ESP32 devices for testing.
 
 ## 📈 Monitoring & Analytics
 
-- **Real-time Dashboard**: Monitor IoT sensor data
+- **Real-time Dashboard**: Monitor IoT sensor data (via API integration)
 - **Trading Analytics**: Track carbon credit transactions
 - **Environmental Impact**: Measure carbon offset effectiveness
-- **Device Status**: Monitor IoT device health and connectivity
+- **Device Status**: Monitor IoT device health and connectivity (see [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1))
 
 ## 🤝 Contributing
 
@@ -266,6 +219,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Setup Guide](SETUP_GUIDE.md)
 - [IoT Integration Guide](IOT_INTEGRATION_GUIDE.md)
+- [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1) - ESP32 projects with PlatformIO, MQTT, and Firebase
 - [Smart Contract Documentation](contracts/README.md)
 - [Frontend Documentation](frontend/README.md)
 
