@@ -14,16 +14,6 @@ This project implements a complete carbon credit ecosystem featuring:
 
 ```
 carbon-credit-marketplace/
-├── contracts/                 # Smart Contracts (Hardhat)
-│   ├── contracts/            # Solidity contracts
-│   │   ├── CarbonCreditToken.sol
-│   │   ├── IoTDataVerifier.sol
-│   │   └── Counter.sol
-│   ├── test/                # Contract tests
-│   ├── scripts/             # Deployment scripts
-│   ├── ignition/            # Hardhat Ignition modules
-│   └── hardhat.config.ts    # Hardhat configuration
-│
 ├── frontend/                 # Next.js Web Application
 │   ├── app/                 # App Router pages
 │   │   ├── page.tsx         # Homepage
@@ -56,6 +46,19 @@ carbon-credit-marketplace/
 
 ## 🔗 Related Projects
 
+### Smart Contracts Repository
+The smart contracts for carbon credit tokenization and trading have been moved to a separate repository for better organization and independent development:
+
+**🔗 [Carbon Credit Smart Contracts](https://github.com/NirajBhattarai/carboncreditsmartcontract)**
+
+This repository contains:
+- **CarbonCreditToken.sol**: ERC-721 NFT implementation for carbon credits
+- **IoTDataVerifier.sol**: Validates IoT sensor data for credit generation
+- **Counter.sol**: Example contract for testing
+- **Hardhat Configuration**: Complete TypeScript development environment
+- **Test Suite**: Comprehensive testing for all contracts
+- **Deployment Scripts**: Automated deployment with Hardhat Ignition
+
 ### IoT Simulator Repository
 The IoT components for environmental monitoring and carbon credit simulation have been moved to a separate repository for better organization and independent development:
 
@@ -78,19 +81,11 @@ This repository contains:
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/NirajBhattarai/Carbon-credit-Marketplace-.git
+git clone https://github.com/NirajBhattarai/Carbon-Credit-Marketplace.git
 cd carbon-credit-marketplace
 ```
 
-### 2. Smart Contracts Setup
-```bash
-cd contracts
-npm install
-npx hardhat compile
-npx hardhat test
-```
-
-### 3. Frontend Setup
+### 2. Frontend Setup
 ```bash
 cd frontend
 npm install
@@ -105,10 +100,8 @@ docker-compose up -d
 
 ## 🏗️ Architecture Components
 
-### Smart Contracts (`contracts/`)
-- **CarbonCreditToken.sol**: ERC-721 NFT implementation for carbon credits
-- **IoTDataVerifier.sol**: Validates IoT sensor data for credit generation
-- **Counter.sol**: Example contract for testing
+### Smart Contracts
+Smart contracts are now managed in a separate repository for better organization and independent development. See the [Smart Contracts Repository](https://github.com/NirajBhattarai/carboncreditsmartcontract) for complete Solidity contracts with Hardhat, TypeScript, and comprehensive testing.
 
 **Key Features:**
 - Carbon credit tokenization as NFTs
@@ -134,14 +127,6 @@ IoT components are now managed in a separate repository for better organization 
 
 ## 🔧 Development
 
-### Smart Contract Development
-```bash
-cd contracts
-npx hardhat compile          # Compile contracts
-npx hardhat test            # Run tests
-npx hardhat deploy          # Deploy to network
-```
-
 ### Frontend Development
 ```bash
 cd frontend
@@ -149,6 +134,9 @@ npm run dev                 # Start development server
 npm run build              # Build for production
 npm run lint               # Run ESLint
 ```
+
+### Smart Contract Development
+Smart contract development is covered in the [Smart Contracts Repository](https://github.com/NirajBhattarai/carboncreditsmartcontract). Use Hardhat for compilation, testing, and deployment.
 
 ## 🌐 API Endpoints
 
@@ -168,6 +156,8 @@ DATABASE_URL=your_database_url
 NEXT_PUBLIC_API_URL=your_api_url
 ```
 
+**Smart Contract Configuration**: See the [Smart Contracts Repository](https://github.com/NirajBhattarai/carboncreditsmartcontract) for Hardhat configuration and environment setup.
+
 **IoT Configuration**: See the [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1) for ESP32 and MQTT configuration details.
 
 ## 📊 Data Flow
@@ -175,23 +165,20 @@ NEXT_PUBLIC_API_URL=your_api_url
 1. **IoT Sensors** collect environmental data (CO2, humidity, etc.) - *See [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1)*
 2. **ESP32 Devices** process and validate sensor readings - *See [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1)*
 3. **MQTT/Firebase** stores real-time IoT data - *See [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1)*
-4. **Smart Contracts** verify data and mint carbon credit NFTs
+4. **Smart Contracts** verify data and mint carbon credit NFTs - *See [Smart Contracts Repository](https://github.com/NirajBhattarai/carboncreditsmartcontract)*
 5. **Web Application** displays marketplace and trading interface
 6. **Users** can buy, sell, and trade carbon credit NFTs
 
 ## 🧪 Testing
-
-### Smart Contracts
-```bash
-cd contracts
-npx hardhat test
-```
 
 ### Frontend
 ```bash
 cd frontend
 npm run test
 ```
+
+### Smart Contracts
+Smart contract testing is covered in the [Smart Contracts Repository](https://github.com/NirajBhattarai/carboncreditsmartcontract). Use Hardhat for comprehensive contract testing.
 
 ### IoT Devices
 IoT device testing is covered in the [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1). Use Wokwi simulator or physical ESP32 devices for testing.
@@ -219,8 +206,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Setup Guide](SETUP_GUIDE.md)
 - [IoT Integration Guide](IOT_INTEGRATION_GUIDE.md)
+- [Smart Contracts Repository](https://github.com/NirajBhattarai/carboncreditsmartcontract) - Solidity contracts with Hardhat, TypeScript, and comprehensive testing
 - [IoT Simulator Repository](https://github.com/NirajBhattarai/carboncreditsimulatoriotv1) - ESP32 projects with PlatformIO, MQTT, and Firebase
-- [Smart Contract Documentation](contracts/README.md)
 - [Frontend Documentation](frontend/README.md)
 
 ## 📞 Support
