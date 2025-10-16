@@ -1,0 +1,5 @@
+#define WIFI_SSID "Wokwi-GUEST"
+#define WIFI_PASSWORD ""
+#define API_KEY "AIzaSyCz2OyUgVSLGSf4gai9ToYybKl8S4FO5YY"
+#define DATABASE_URL "carbon-credit-tracker-default-rtdb.firebaseio.com"
+#define FIREBASE_AUTH "8NeMdlbpBypD0xrK5Ke68rwzGKYM3HRnXJBo8d8a"
