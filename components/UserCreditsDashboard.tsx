@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { CreditAccumulation } from '@/components/CreditAccumulation';
+import { useAccount } from 'wagmi';
 
 interface UserCredit {
   walletAddress: string;
@@ -34,6 +36,7 @@ export function UserCreditsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const { address } = useAccount();
 
   // Fetch user credits data
   const fetchUserCredits = async () => {
@@ -166,6 +169,13 @@ export function UserCreditsDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Personal Credit Accumulation - Only show if user is connected */}
+        {address && (
+          <div className='mb-8'>
+            <CreditAccumulation walletAddress={address} />
+          </div>
+        )}
 
         {/* Summary Stats */}
         <div className='grid grid-cols-1 md:grid-cols-5 gap-6 mb-8'>
