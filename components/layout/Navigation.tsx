@@ -8,8 +8,6 @@ import {
   WalletInfo,
   EnhancedConnectButton,
 } from '@/components/ConnectButton';
-import { AuthButton } from '@/components/auth/AuthButton';
-import { AuthenticationStatus } from '@/components/auth/AuthenticationHandler';
 import { useAccount } from 'wagmi';
 import { useUser } from '@/lib/auth/context';
 import { APP_CONFIG, DESIGN_SYSTEM } from '@/lib/constants';
@@ -94,28 +92,26 @@ export function Navigation() {
           </div>
 
           {/* Right side buttons */}
-          <div className='flex items-center space-x-1 sm:space-x-2 lg:space-x-3 flex-shrink-0'>
+          <div className='flex items-center space-x-2 flex-shrink-0'>
             {/* Wallet Connect - Responsive */}
-            <div className='hidden sm:flex items-center gap-1 lg:gap-1.5'>
+            <div className='hidden sm:flex items-center'>
               <EnhancedConnectButton />
-              <AuthButton />
-              <AuthenticationStatus />
             </div>
 
             {/* Mobile Wallet Connect */}
-            <div className='sm:hidden flex items-center space-x-1'>
+            <div className='sm:hidden flex items-center'>
               <EnhancedConnectButton />
             </div>
 
             {/* Mobile menu button */}
             <button
-              className='xl:hidden relative p-3 rounded-xl text-gray-600 hover:text-emerald-600 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-100 hover:-translate-y-1 group'
+              className='xl:hidden relative p-2 rounded-lg text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 transition-all duration-300'
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-label='Toggle mobile menu'
             >
-              <div className='relative w-7 h-7'>
+              <div className='relative w-6 h-6'>
                 <svg
-                  className='w-7 h-7 transition-all duration-300 group-hover:scale-110'
+                  className='w-6 h-6 transition-all duration-300'
                   fill='none'
                   stroke='currentColor'
                   viewBox='0 0 24 24'
@@ -124,22 +120,18 @@ export function Navigation() {
                     <path
                       strokeLinecap='round'
                       strokeLinejoin='round'
-                      strokeWidth={2.5}
+                      strokeWidth={2}
                       d='M6 18L18 6M6 6l12 12'
-                      className='transition-all duration-300'
                     />
                   ) : (
                     <path
                       strokeLinecap='round'
                       strokeLinejoin='round'
-                      strokeWidth={2.5}
+                      strokeWidth={2}
                       d='M4 6h16M4 12h16M4 18h16'
-                      className='transition-all duration-300'
                     />
                   )}
                 </svg>
-                {/* Animated background circle */}
-                <div className='absolute inset-0 rounded-full bg-emerald-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-0 group-hover:scale-100'></div>
               </div>
             </button>
           </div>
@@ -175,8 +167,7 @@ export function Navigation() {
 
             {/* Mobile Auth Buttons */}
             <div className='px-4 space-y-3 sm:hidden'>
-              <AuthButton />
-              <AuthenticationStatus />
+              <EnhancedConnectButton />
             </div>
           </div>
         )}
