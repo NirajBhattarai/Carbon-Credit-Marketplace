@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button';
 export function AuthButton() {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
-  const { loginWithWallet, logout, user, isLoading } = useUser();
+  const { connectWallet, disconnectWallet, user, isLoading } = useUser();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   const handleAuth = async () => {
@@ -20,14 +20,7 @@ export function AuthButton() {
 
     try {
       setIsAuthenticating(true);
-
-      const message = `Sign this message to authenticate with EcoTrade Carbon Credit Marketplace.\n\nWallet: ${address}\nTimestamp: ${Date.now()}`;
-      const signature = await signMessageAsync({ message });
-      const result = await loginWithWallet(address, signature, message);
-
-      if (!result.success) {
-        console.error('Authentication failed:', result.error);
-      }
+      await connectWallet();
     } catch (error) {
       console.error('Authentication error:', error);
     } finally {
@@ -41,26 +34,26 @@ export function AuthButton() {
 
   if (user) {
     return (
-      <div className='flex items-center gap-3'>
-        <div className='text-right'>
-          <p className='text-sm font-medium text-gray-900'>
+      <div className='flex items-center gap-1 sm:gap-1.5 group'>
+        <div className='text-right hidden sm:block'>
+          <p className='text-xs font-medium text-gray-900 truncate max-w-20 group-hover:text-emerald-600 transition-colors duration-300'>
             {user.username ||
               user.name ||
-              `${address?.slice(0, 6)}...${address?.slice(-4)}`}
+              `${address?.slice(0, 3)}...${address?.slice(-3)}`}
           </p>
-          <p className='text-xs text-gray-500'>
+          <p className='text-xs text-gray-500 group-hover:text-emerald-500 transition-colors duration-300'>
             {user.role === 'DEVELOPER'
-              ? 'Developer'
+              ? 'Dev'
               : user.role === 'ADMIN'
                 ? 'Admin'
                 : 'User'}
           </p>
         </div>
         <Button
-          onClick={logout}
-          size='sm'
+          onClick={disconnectWallet}
+          size='xs'
           variant='secondary'
-          className='text-xs'
+          className='text-xs px-2 py-1 hover:shadow-md hover:shadow-gray-100 hover:-translate-y-0.5 transition-all duration-300'
         >
           Logout
         </Button>
@@ -72,14 +65,14 @@ export function AuthButton() {
     <Button
       onClick={handleAuth}
       disabled={isAuthenticating || isLoading}
-      size='sm'
-      className='min-w-[120px]'
+      size='xs'
+      className='min-w-[70px] px-2 py-1 text-xs hover:shadow-md hover:shadow-emerald-100 hover:-translate-y-0.5 transition-all duration-300'
     >
       {isAuthenticating
         ? 'Signing...'
         : isLoading
-          ? 'Authenticating...'
-          : 'Authenticate'}
+          ? 'Auth...'
+          : 'Auth'}
     </Button>
   );
 }

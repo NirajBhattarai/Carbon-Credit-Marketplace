@@ -1,14 +1,12 @@
 'use client';
 
 import { createContext, useContext, useReducer, ReactNode } from 'react';
-import { User, Token, SwapSettings, AppError } from '@/lib/types';
+import { User, AppError } from '@/lib/types';
 
 // App State Types
 interface AppState {
   user: User | null;
   isWalletConnected: boolean;
-  tokens: Token[];
-  swapSettings: SwapSettings;
   isLoading: boolean;
   error: AppError | null;
 }
@@ -17,12 +15,6 @@ interface AppState {
 type AppAction =
   | { type: 'SET_USER'; payload: User | null }
   | { type: 'SET_WALLET_CONNECTED'; payload: boolean }
-  | { type: 'SET_TOKENS'; payload: Token[] }
-  | {
-      type: 'UPDATE_TOKEN_BALANCE';
-      payload: { address: string; balance: string };
-    }
-  | { type: 'SET_SWAP_SETTINGS'; payload: Partial<SwapSettings> }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: AppError | null }
   | { type: 'CLEAR_ERROR' };
@@ -31,12 +23,6 @@ type AppAction =
 const initialState: AppState = {
   user: null,
   isWalletConnected: false,
-  tokens: [],
-  swapSettings: {
-    slippageTolerance: 0.5,
-    transactionDeadline: 20,
-    autoRefresh: true,
-  },
   isLoading: false,
   error: null,
 };
@@ -48,22 +34,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, user: action.payload };
     case 'SET_WALLET_CONNECTED':
       return { ...state, isWalletConnected: action.payload };
-    case 'SET_TOKENS':
-      return { ...state, tokens: action.payload };
-    case 'UPDATE_TOKEN_BALANCE':
-      return {
-        ...state,
-        tokens: state.tokens.map(token =>
-          token.address === action.payload.address
-            ? { ...token, balance: action.payload.balance }
-            : token
-        ),
-      };
-    case 'SET_SWAP_SETTINGS':
-      return {
-        ...state,
-        swapSettings: { ...state.swapSettings, ...action.payload },
-      };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
     case 'SET_ERROR':
@@ -119,13 +89,18 @@ export function useUser() {
 
       const mockUser: User = {
         id: '1',
+        walletAddress: '0x1234...5678',
+        username: 'CarbonTrader',
+        role: 'USER',
+        isVerified: true,
+        createdAt: '2024-01-01T00:00:00Z',
+        // Legacy fields for backward compatibility
         address: '0x1234...5678',
         name: 'CarbonTrader',
         avatar:
           'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
         bio: 'Passionate about carbon credits and environmental impact',
         joined: '2024-01-01T00:00:00Z',
-        isVerified: true,
         stats: {
           itemsOwned: 15,
           collections: 8,
@@ -164,42 +139,6 @@ export function useUser() {
     connectWallet,
     disconnectWallet,
     setUser,
-  };
-}
-
-export function useTokens() {
-  const { state, dispatch } = useApp();
-
-  const setTokens = (tokens: Token[]) => {
-    dispatch({ type: 'SET_TOKENS', payload: tokens });
-  };
-
-  const updateTokenBalance = (address: string, balance: string) => {
-    dispatch({ type: 'UPDATE_TOKEN_BALANCE', payload: { address, balance } });
-  };
-
-  const getTokenBySymbol = (symbol: string) => {
-    return state.tokens.find(token => token.symbol === symbol);
-  };
-
-  return {
-    tokens: state.tokens,
-    setTokens,
-    updateTokenBalance,
-    getTokenBySymbol,
-  };
-}
-
-export function useSwapSettings() {
-  const { state, dispatch } = useApp();
-
-  const updateSettings = (settings: Partial<SwapSettings>) => {
-    dispatch({ type: 'SET_SWAP_SETTINGS', payload: settings });
-  };
-
-  return {
-    settings: state.swapSettings,
-    updateSettings,
   };
 }
 

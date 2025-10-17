@@ -21,17 +21,17 @@ export function CustomConnectButton() {
 
   if (isConnected && address) {
     return (
-      <div className='flex items-center gap-2'>
-        <span className='text-sm text-gray-600'>
-          {`${address.slice(0, 6)}...${address.slice(-4)}`}
+      <div className='flex items-center gap-1 sm:gap-2 group'>
+        <span className='text-xs sm:text-sm text-gray-600 font-mono bg-gray-100 px-2 py-1 rounded-md group-hover:bg-emerald-50 group-hover:text-emerald-700 transition-all duration-300'>
+          {`${address.slice(0, 3)}...${address.slice(-3)}`}
         </span>
         <Button
           variant='outline'
-          size='sm'
+          size='xs'
           onClick={() => disconnect()}
-          className='text-red-600 hover:text-red-700 hover:bg-red-50'
+          className='text-red-600 hover:text-red-700 hover:bg-red-50 px-2 py-1 text-xs hover:shadow-md hover:shadow-red-100 hover:-translate-y-0.5 transition-all duration-300'
         >
-          Disconnect
+          ×
         </Button>
       </div>
     );

@@ -27,28 +27,20 @@ export function AuthenticationStatus() {
   }
 
   if (isLoading) {
-    return <div className='text-xs text-gray-500'>Authenticating...</div>;
+    return <div className='text-xs text-gray-500'>Auth...</div>;
   }
 
   if (user) {
     return (
-      <div className='text-xs text-green-600'>
-        ✓ Authenticated as{' '}
-        {user.role === 'DEVELOPER'
-          ? 'Developer'
-          : user.role === 'ADMIN'
-            ? 'Admin'
-            : 'User'}
+      <div className='text-xs text-green-600 hidden sm:block'>
+        ✓ {user.role === 'DEVELOPER' ? 'Dev' : user.role === 'ADMIN' ? 'Admin' : 'User'}
       </div>
     );
   }
 
   return (
-    <div className='flex flex-col items-center gap-1'>
-      <div className='text-xs text-yellow-600'>
-        ⚠ Wallet connected, authentication required
-      </div>
-      <ManualAuthenticationTrigger />
+    <div className='text-xs text-yellow-600 hidden sm:block'>
+      ⚠ Auth required
     </div>
   );
 }
@@ -60,7 +52,7 @@ export function AuthenticationStatus() {
 export function ManualAuthenticationTrigger() {
   const { address, isConnected } = useAccount();
   const { signMessageAsync } = useSignMessage();
-  const { loginWithWallet, user, isLoading } = useUser();
+  const { connectWallet, user, isLoading } = useUser();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
   const handleManualAuth = async () => {
@@ -68,14 +60,7 @@ export function ManualAuthenticationTrigger() {
 
     try {
       setIsAuthenticating(true);
-
-      const message = `Sign this message to authenticate with EcoTrade Carbon Credit Marketplace.\n\nWallet: ${address}\nTimestamp: ${Date.now()}`;
-      const signature = await signMessageAsync({ message });
-      const result = await loginWithWallet(address, signature, message);
-
-      if (!result.success) {
-        console.error('Manual authentication failed:', result.error);
-      }
+      await connectWallet();
     } catch (error) {
       console.error('Manual authentication error:', error);
     } finally {
@@ -93,7 +78,7 @@ export function ManualAuthenticationTrigger() {
       disabled={isAuthenticating || isLoading}
       className='text-xs text-blue-600 hover:text-blue-800 underline'
     >
-      {isAuthenticating ? 'Authenticating...' : 'Click to authenticate'}
+      {isAuthenticating ? 'Auth...' : 'Auth'}
     </button>
   );
 }

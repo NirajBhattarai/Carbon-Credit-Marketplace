@@ -18,16 +18,15 @@ carbon-credit-marketplace/
 ├── frontend/                 # Next.js Web Application
 │   ├── app/                 # App Router pages
 │   │   ├── page.tsx         # Homepage
-│   │   ├── nfts/            # NFT marketplace
-│   │   ├── collections/     # Collection management
 │   │   ├── profile/         # User profiles
-│   │   └── swap/            # Trading interface
+│   │   ├── iot-devices/     # IoT device management
+│   │   ├── iot-data/        # IoT data visualization
+│   │   └── developer/       # Developer dashboard
 │   ├── components/          # React components
 │   │   ├── ui/              # Base UI components
 │   │   ├── layout/          # Layout components
-│   │   ├── NFTCard.tsx      # NFT display
-│   │   ├── BuyModal.tsx     # Purchase interface
-│   │   └── SellModal.tsx    # Selling interface
+│   │   ├── DeviceManagementDashboard.tsx # IoT device management
+│   │   └── RealTimeDashboard.tsx # Real-time data visualization
 │   ├── lib/                 # Utilities and configurations
 │   │   ├── db/              # Database schema
 │   │   ├── types.ts         # TypeScript definitions
@@ -129,11 +128,10 @@ Smart contracts are now managed in a separate repository for better organization
 
 **Key Features:**
 
-- NFT marketplace interface
-- User profile management
-- Real-time trading
-- IoT data visualization (via API)
-- Collection management
+- IoT device management and monitoring
+- Real-time environmental data collection
+- Carbon credit tracking and analytics
+- Developer API access
 
 ### IoT Integration
 

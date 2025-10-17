@@ -43,55 +43,6 @@ export const BLOCKCHAIN_CONFIG = {
   defaultNetwork: 'ethereum',
 } as const;
 
-// Token Configuration
-export const TOKEN_CONFIG = {
-  USDC: {
-    symbol: 'USDC',
-    name: 'USD Coin',
-    address: '0xA0b86a33E6441b8c4C8C0E1234567890abcdef12',
-    decimals: 6,
-    icon: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png',
-    color: '#2775CA',
-  },
-  ECO: {
-    symbol: 'ECO',
-    name: 'EcoCredit Token',
-    address: '0xB1c97a33E6441b8c4C8C0E1234567890abcdef34',
-    decimals: 18,
-    icon: '🌿',
-    color: '#10B981',
-    description: 'Verified Carbon Credit Token',
-  },
-  ETH: {
-    symbol: 'ETH',
-    name: 'Ethereum',
-    address: '0xC2d88a33E6441b8c4C8C0E1234567890abcdef56',
-    decimals: 18,
-    icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
-    color: '#627EEA',
-  },
-  WETH: {
-    symbol: 'WETH',
-    name: 'Wrapped Ethereum',
-    address: '0xD3d88a33E6441b8c4C8C0E1234567890abcdef78',
-    decimals: 18,
-    icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
-    color: '#627EEA',
-  },
-} as const;
-
-// Swap Configuration
-export const SWAP_CONFIG = {
-  defaultSlippage: 0.5,
-  maxSlippage: 50,
-  minSlippage: 0.1,
-  defaultDeadline: 20,
-  maxDeadline: 4320, // 3 days in minutes
-  minDeadline: 1,
-  priceImpactWarning: 5,
-  priceImpactError: 10,
-} as const;
-
 // Pagination Configuration
 export const PAGINATION_CONFIG = {
   defaultPageSize: 20,

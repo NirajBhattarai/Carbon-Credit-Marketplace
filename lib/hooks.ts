@@ -208,7 +208,7 @@ export function useFilters<T>(
   const filteredItems = items.filter(item => filterFn(item, filters));
 
   const setFilter = useCallback((key: string, value: any) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev: any) => ({ ...prev, [key]: value }));
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -216,7 +216,7 @@ export function useFilters<T>(
   }, []);
 
   const clearFilter = useCallback((key: string) => {
-    setFilters(prev => {
+    setFilters((prev: any) => {
       const newFilters = { ...prev };
       delete newFilters[key];
       return newFilters;
@@ -232,43 +232,3 @@ export function useFilters<T>(
   };
 }
 
-// Hook for managing swap state
-export function useSwap() {
-  const [fromToken, setFromToken] = useState<Token | null>(null);
-  const [toToken, setToToken] = useState<Token | null>(null);
-  const [fromAmount, setFromAmount] = useState('');
-  const [toAmount, setToAmount] = useState('');
-  const [slippage, setSlippage] = useState(0.5);
-
-  const swapTokens = useCallback(() => {
-    const tempToken = fromToken;
-    const tempAmount = fromAmount;
-    setFromToken(toToken);
-    setToToken(tempToken);
-    setFromAmount(toAmount);
-    setToAmount(tempAmount);
-  }, [fromToken, toToken, fromAmount, toAmount]);
-
-  const resetSwap = useCallback(() => {
-    setFromAmount('');
-    setToAmount('');
-  }, []);
-
-  return {
-    fromToken,
-    toToken,
-    fromAmount,
-    toAmount,
-    slippage,
-    setFromToken,
-    setToToken,
-    setFromAmount,
-    setToAmount,
-    setSlippage,
-    swapTokens,
-    resetSwap,
-  };
-}
-
-// Import Token type for useSwap hook
-import { Token } from '@/lib/types';

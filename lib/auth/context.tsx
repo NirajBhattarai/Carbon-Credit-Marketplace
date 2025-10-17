@@ -8,7 +8,7 @@ import {
   useEffect,
 } from 'react';
 import { useAccount } from 'wagmi';
-import { User, Token, SwapSettings, AppError } from '@/lib/types';
+import { User, AppError } from '@/lib/types';
 
 // App State Types
 interface AppState {
@@ -16,8 +16,6 @@ interface AppState {
   isWalletConnected: boolean;
   isAuthenticated: boolean;
   authToken: string | null;
-  tokens: Token[];
-  swapSettings: SwapSettings;
   isLoading: boolean;
   error: AppError | null;
 }
@@ -28,12 +26,6 @@ type AppAction =
   | { type: 'SET_WALLET_CONNECTED'; payload: boolean }
   | { type: 'SET_AUTHENTICATED'; payload: boolean }
   | { type: 'SET_AUTH_TOKEN'; payload: string | null }
-  | { type: 'SET_TOKENS'; payload: Token[] }
-  | {
-      type: 'UPDATE_TOKEN_BALANCE';
-      payload: { address: string; balance: string };
-    }
-  | { type: 'SET_SWAP_SETTINGS'; payload: Partial<SwapSettings> }
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: AppError | null }
   | { type: 'CLEAR_ERROR' };
@@ -44,12 +36,6 @@ const initialState: AppState = {
   isWalletConnected: false,
   isAuthenticated: false,
   authToken: null,
-  tokens: [],
-  swapSettings: {
-    slippageTolerance: 0.5,
-    transactionDeadline: 20,
-    autoRefresh: true,
-  },
   isLoading: false,
   error: null,
 };
@@ -65,22 +51,6 @@ function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, isAuthenticated: action.payload };
     case 'SET_AUTH_TOKEN':
       return { ...state, authToken: action.payload };
-    case 'SET_TOKENS':
-      return { ...state, tokens: action.payload };
-    case 'UPDATE_TOKEN_BALANCE':
-      return {
-        ...state,
-        tokens: state.tokens.map(token =>
-          token.address === action.payload.address
-            ? { ...token, balance: action.payload.balance }
-            : token
-        ),
-      };
-    case 'SET_SWAP_SETTINGS':
-      return {
-        ...state,
-        swapSettings: { ...state.swapSettings, ...action.payload },
-      };
     case 'SET_LOADING':
       return { ...state, isLoading: action.payload };
     case 'SET_ERROR':
@@ -101,60 +71,21 @@ const AppContext = createContext<{
 // Provider
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
-  const { address, isConnected } = useAccount();
+  const { isConnected } = useAccount();
 
-  // Load auth token from localStorage on mount and validate it
+  // Sync wallet connection state
+  useEffect(() => {
+    dispatch({ type: 'SET_WALLET_CONNECTED', payload: isConnected });
+  }, [isConnected]);
+
+  // Check for existing auth token
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (token) {
       dispatch({ type: 'SET_AUTH_TOKEN', payload: token });
       dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-
-      // Validate token and fetch user profile
-      validateAndFetchUser(token);
     }
   }, []);
-
-  // Function to validate token and fetch user data
-  const validateAndFetchUser = async (token: string) => {
-    try {
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          dispatch({ type: 'SET_USER', payload: data.user });
-          dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-        } else {
-          // Token is invalid, clear it
-          localStorage.removeItem('auth_token');
-          dispatch({ type: 'SET_AUTH_TOKEN', payload: null });
-          dispatch({ type: 'SET_AUTHENTICATED', payload: false });
-        }
-      } else {
-        // Token is invalid or expired, clear it
-        localStorage.removeItem('auth_token');
-        dispatch({ type: 'SET_AUTH_TOKEN', payload: null });
-        dispatch({ type: 'SET_AUTHENTICATED', payload: false });
-      }
-    } catch (error) {
-      console.error('Failed to validate token:', error);
-      // On error, clear the token to be safe
-      localStorage.removeItem('auth_token');
-      dispatch({ type: 'SET_AUTH_TOKEN', payload: null });
-      dispatch({ type: 'SET_AUTHENTICATED', payload: false });
-    }
-  };
-
-  // Update wallet connection state
-  useEffect(() => {
-    dispatch({ type: 'SET_WALLET_CONNECTED', payload: isConnected });
-  }, [isConnected]);
 
   return (
     <AppContext.Provider value={{ state, dispatch }}>
@@ -164,7 +95,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 }
 
 // Hook to use the context
-export function useApp() {
+function useApp() {
   const context = useContext(AppContext);
   if (!context) {
     throw new Error('useApp must be used within an AppProvider');
@@ -172,7 +103,7 @@ export function useApp() {
   return context;
 }
 
-// Convenience hooks
+// Custom hooks
 export function useUser() {
   const { state, dispatch } = useApp();
 
@@ -180,98 +111,58 @@ export function useUser() {
     dispatch({ type: 'SET_USER', payload: user });
   };
 
-  const setAuthToken = (token: string | null) => {
-    dispatch({ type: 'SET_AUTH_TOKEN', payload: token });
-    if (token) {
-      localStorage.setItem('auth_token', token);
-      dispatch({ type: 'SET_AUTHENTICATED', payload: true });
-    } else {
-      localStorage.removeItem('auth_token');
-      dispatch({ type: 'SET_AUTHENTICATED', payload: false });
-    }
-  };
-
-  const loginWithWallet = async (
-    walletAddress: string,
-    signature: string,
-    message: string
-  ) => {
+  const connectWallet = async () => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
 
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Simulate wallet connection
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const mockUser: User = {
+        id: '1',
+        walletAddress: '0x1234...5678',
+        username: 'CarbonTrader',
+        role: 'USER',
+        isVerified: true,
+        createdAt: '2024-01-01T00:00:00Z',
+        // Legacy fields for backward compatibility
+        address: '0x1234...5678',
+        name: 'CarbonTrader',
+        avatar:
+          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
+        bio: 'Passionate about carbon credits and environmental impact',
+        joined: '2024-01-01T00:00:00Z',
+        stats: {
+          itemsOwned: 15,
+          collections: 8,
+          volumeTraded: 45.2,
+          totalCredits: 2500,
+          creditsUsed: 1200,
         },
-        body: JSON.stringify({
-          walletAddress,
-          signature,
-          message,
-          username: `user_${walletAddress.slice(0, 8)}`,
-        }),
-      });
+      };
 
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setAuthToken(data.token);
-        setUser(data.user);
-        dispatch({ type: 'SET_WALLET_CONNECTED', payload: true });
-        return { success: true, user: data.user };
-      } else {
-        throw new Error(data.error || 'Login failed');
-      }
+      setUser(mockUser);
+      dispatch({ type: 'SET_WALLET_CONNECTED', payload: true });
     } catch (error) {
       dispatch({
         type: 'SET_ERROR',
         payload: {
-          code: 'LOGIN_ERROR',
-          message: 'Failed to login with wallet',
-          details: error,
+          message: 'Failed to connect wallet',
+          code: 'WALLET_CONNECTION_ERROR',
         },
       });
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Login failed',
-      };
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
-  const logout = () => {
-    setUser(null);
-    setAuthToken(null);
+  const disconnectWallet = () => {
+    dispatch({ type: 'SET_USER', payload: null });
     dispatch({ type: 'SET_WALLET_CONNECTED', payload: false });
-  };
-
-  const fetchUserProfile = async () => {
-    try {
-      const token = state.authToken;
-      if (!token) return;
-
-      const response = await fetch('/api/auth/me', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setUser(data.user);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch user profile:', error);
-    }
+    dispatch({ type: 'SET_AUTHENTICATED', payload: false });
+    dispatch({ type: 'SET_AUTH_TOKEN', payload: null });
+    localStorage.removeItem('auth_token');
   };
 
   return {
@@ -281,46 +172,9 @@ export function useUser() {
     authToken: state.authToken,
     isLoading: state.isLoading,
     error: state.error,
-    loginWithWallet,
-    logout,
-    fetchUserProfile,
+    connectWallet,
+    disconnectWallet,
     setUser,
-  };
-}
-
-export function useTokens() {
-  const { state, dispatch } = useApp();
-
-  const setTokens = (tokens: Token[]) => {
-    dispatch({ type: 'SET_TOKENS', payload: tokens });
-  };
-
-  const updateTokenBalance = (address: string, balance: string) => {
-    dispatch({ type: 'UPDATE_TOKEN_BALANCE', payload: { address, balance } });
-  };
-
-  const getTokenBySymbol = (symbol: string) => {
-    return state.tokens.find(token => token.symbol === symbol);
-  };
-
-  return {
-    tokens: state.tokens,
-    setTokens,
-    updateTokenBalance,
-    getTokenBySymbol,
-  };
-}
-
-export function useSwapSettings() {
-  const { state, dispatch } = useApp();
-
-  const updateSettings = (settings: Partial<SwapSettings>) => {
-    dispatch({ type: 'SET_SWAP_SETTINGS', payload: settings });
-  };
-
-  return {
-    settings: state.swapSettings,
-    updateSettings,
   };
 }
 

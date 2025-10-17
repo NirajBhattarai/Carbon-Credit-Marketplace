@@ -110,35 +110,6 @@ export interface SaleRecord {
   seller: User;
 }
 
-// Trading and Swap types
-export interface Token {
-  symbol: string;
-  name: string;
-  icon: string;
-  balance: string;
-  address: string;
-  decimals: number;
-  priceUSD?: number;
-}
-
-export interface SwapQuote {
-  fromToken: Token;
-  toToken: Token;
-  fromAmount: string;
-  toAmount: string;
-  rate: number;
-  priceImpact: number;
-  minimumReceived: string;
-  networkFee: string;
-  slippage: number;
-}
-
-export interface SwapSettings {
-  slippageTolerance: number;
-  transactionDeadline: number;
-  autoRefresh: boolean;
-}
-
 // Market and Analytics types
 export interface MarketStats {
   totalVolume: number;
