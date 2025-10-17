@@ -10,14 +10,14 @@ interface IoTDataPayload {
   energyValue: number
   temperature: number
   humidity: number
-  deviceType: 'CREATOR' | 'BURNER'
+  deviceType: 'SEQUESTER' | 'EMITTER'
   location?: string
   projectName?: string
 }
 
 interface DeviceRegistrationPayload {
   deviceId: string
-  deviceType: 'CREATOR' | 'BURNER'
+  deviceType: 'SEQUESTER' | 'EMITTER'
   location: string
   projectName: string
   description?: string
@@ -50,9 +50,9 @@ function generateDataHash(data: any): string {
 }
 
 function calculateCreditAmount(deviceType: string, accData: any): number {
-  if (deviceType === 'CREATOR') {
+  if (deviceType === 'SEQUESTER') {
     return Math.floor(accData.totalCo2 / 1000)
-  } else if (deviceType === 'BURNER') {
+  } else if (deviceType === 'EMITTER') {
     return Math.floor(accData.totalCo2 / 1000)
   }
   return 0
@@ -115,7 +115,7 @@ async function checkThresholds(deviceId: string) {
 
 async function triggerCreditAction(device: any, amount: number, accData: any) {
   try {
-    const transactionType = device.deviceType === 'CREATOR' ? 'MINT' : 'BURN'
+    const transactionType = device.deviceType === 'SEQUESTER' ? 'MINT' : 'BURN'
     
     // Create transaction record
     const transaction = await db.insert(carbonCreditTransactions).values({
@@ -212,6 +212,7 @@ async function registerDevice(req: NextApiRequest, res: NextApiResponse) {
     // Create device
     const device = await db.insert(iotDevices).values({
       deviceId: data.deviceId,
+      applicationId: 'default-application', // TODO: Get from request context
       deviceType: data.deviceType,
       location: data.location,
       projectName: data.projectName,
@@ -222,8 +223,8 @@ async function registerDevice(req: NextApiRequest, res: NextApiResponse) {
 
     // Set default thresholds
     deviceThresholds.set(data.deviceId, {
-      co2Threshold: data.deviceType === 'CREATOR' ? 1000 : 1000,
-      energyThreshold: data.deviceType === 'CREATOR' ? 500 : 500,
+      co2Threshold: data.deviceType === 'SEQUESTER' ? 1000 : 1000,
+      energyThreshold: data.deviceType === 'SEQUESTER' ? 500 : 500,
       timeWindow: 3600, // 1 hour
     })
 

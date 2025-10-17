@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { db, iotDevices, deviceData, eq } from '@/lib/db'
+import { IoTDataProcessor, IoTDataPayload } from '@/lib/services/iot-processor'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { method } = req
@@ -29,7 +30,12 @@ async function receiveIoTData(req: NextApiRequest, res: NextApiResponse) {
   const data = req.body
 
   try {
-    // Validate required fields
+    // Check if it's the new format with carbon credit data
+    if (data.c !== undefined && data.h !== undefined && data.cr !== undefined && data.e !== undefined) {
+      return await processCarbonCreditData(req, res)
+    }
+
+    // Legacy format validation
     if (!data.deviceId || typeof data.co2Value !== 'number' || typeof data.energyValue !== 'number') {
       return res.status(400).json({
         success: false,
@@ -77,6 +83,70 @@ async function receiveIoTData(req: NextApiRequest, res: NextApiResponse) {
     res.status(500).json({
       success: false,
       message: 'Failed to process data',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })
+  }
+}
+
+// Process carbon credit data format: {"c":1810,"h":64,"cr":905.0,"e":12.8,"o":true,"t":452787}
+async function processCarbonCreditData(req: NextApiRequest, res: NextApiResponse) {
+  const { deviceId, ...payload } = req.body
+
+  try {
+    // Validate required fields
+    if (!deviceId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: deviceId'
+      })
+    }
+
+    // Validate payload format
+    const iotPayload: IoTDataPayload = {
+      c: payload.c || 0,
+      h: payload.h || 0,
+      cr: payload.cr || 0,
+      e: payload.e || 0,
+      o: payload.o || false,
+      t: payload.t || Math.floor(Date.now() / 1000),
+    }
+
+    // Check if device exists
+    const device = await db.query.iotDevices.findFirst({
+      where: eq(iotDevices.deviceId, deviceId)
+    })
+
+    if (!device) {
+      return res.status(404).json({
+        success: false,
+        message: `Device ${deviceId} not found`
+      })
+    }
+
+    // Process the IoT data and update user credits
+    const processedData = await IoTDataProcessor.processIoTData(deviceId, iotPayload)
+
+    // Update device last seen
+    await db.update(iotDevices)
+      .set({ lastSeen: new Date() })
+      .where(eq(iotDevices.deviceId, deviceId))
+
+    res.status(201).json({
+      success: true,
+      message: 'Carbon credit data processed successfully',
+      timestamp: new Date().toISOString(),
+      processedData: {
+        credits: processedData.credits,
+        co2Reduced: processedData.co2Reduced,
+        energySaved: processedData.energySaved,
+        isOnline: processedData.isOnline,
+      }
+    })
+  } catch (error) {
+    console.error('Carbon credit data processing error:', error)
+    res.status(500).json({
+      success: false,
+      message: 'Failed to process carbon credit data',
       error: error instanceof Error ? error.message : 'Unknown error'
     })
   }

@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # InfluxDB Time-Series Database
+  influxdb:
+    image: influxdb:2.7
+    container_name: carbon-credit-influxdb
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=carboncredit123
+      - DOCKER_INFLUXDB_INIT_ORG=carbon-credit-org
+      - DOCKER_INFLUXDB_INIT_BUCKET=mqtt-data
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=carbon-credit-token-123
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+    networks:
+      - carbon-credit-network
+
+  # InfluxDB CLI (for management)
+  influxdb-cli:
+    image: influxdb:2.7-cli
+    container_name: carbon-credit-influxdb-cli
+    restart: "no"
+    depends_on:
+      - influxdb
+    environment:
+      - INFLUX_HOST=http://influxdb:8086
+      - INFLUX_TOKEN=carbon-credit-token-123
+    networks:
+      - carbon-credit-network
+    profiles:
+      - tools
+
+  # MQTT Broker (if not already running)
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: carbon-credit-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - carbon-credit-network
+
+volumes:
+  influxdb-data:
+    driver: local
+  influxdb-config:
+    driver: local
+
+networks:
+  carbon-credit-network:
+    driver: bridge

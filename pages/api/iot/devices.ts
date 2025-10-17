@@ -4,7 +4,7 @@ import { authenticateApiKey } from '@/lib/auth/middleware'
 
 interface DeviceRegistrationPayload {
   deviceId: string
-  deviceType: 'CREATOR' | 'BURNER'
+  deviceType: 'SEQUESTER' | 'EMITTER'
   location: string
   projectName: string
   description?: string
@@ -58,10 +58,10 @@ async function registerDevice(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Validate device type
-    if (!['CREATOR', 'BURNER'].includes(data.deviceType)) {
+    if (!['SEQUESTER', 'EMITTER'].includes(data.deviceType)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid device type. Must be CREATOR or BURNER'
+        message: 'Invalid device type. Must be SEQUESTER or EMITTER'
       })
     }
 
@@ -100,7 +100,7 @@ async function registerDevice(req: NextApiRequest, res: NextApiResponse) {
         registrationTimestamp: new Date().toISOString(),
         applicationId: application.id,
         applicationName: application.name,
-        deviceCapabilities: data.deviceType === 'CREATOR' 
+        deviceCapabilities: data.deviceType === 'SEQUESTER' 
           ? ['co2_monitoring', 'energy_tracking', 'credit_generation']
           : ['co2_monitoring', 'energy_tracking', 'credit_burning']
       }
@@ -130,8 +130,8 @@ async function getAllDevices(req: NextApiRequest, res: NextApiResponse) {
     // Build where conditions based on query parameters
     let whereCondition = eq(iotDevices.applicationId, application.id)
     
-    if (deviceType && ['CREATOR', 'BURNER'].includes(deviceType as string)) {
-      whereCondition = eq(iotDevices.deviceType, deviceType as 'CREATOR' | 'BURNER')
+    if (deviceType && ['SEQUESTER', 'EMITTER'].includes(deviceType as string)) {
+      whereCondition = eq(iotDevices.deviceType, deviceType as 'SEQUESTER' | 'EMITTER')
     }
     
     if (isActive !== undefined) {

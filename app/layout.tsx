@@ -6,6 +6,7 @@ import { Navigation } from '@/components/layout/Navigation'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { ToastProvider } from '@/components/Toast'
 import { AuthenticationHandler } from '@/components/auth/AuthenticationHandler'
+import { MQTTProvider } from '@/lib/mqtt/context'
 import { headers } from 'next/headers'
 import ContextProvider from '@/context'
 
@@ -79,13 +80,15 @@ export default async function RootLayout({
         <ErrorBoundary>
           <ContextProvider cookies={cookies}>
             <AppProvider>
-              <AuthenticationHandler />
-              <ToastProvider>
-                <Navigation />
-                <main className="min-h-screen">
-                  {children}
-                </main>
-              </ToastProvider>
+              <MQTTProvider>
+                <AuthenticationHandler />
+                <ToastProvider>
+                  <Navigation />
+                  <main className="min-h-screen">
+                    {children}
+                  </main>
+                </ToastProvider>
+              </MQTTProvider>
             </AppProvider>
           </ContextProvider>
         </ErrorBoundary>

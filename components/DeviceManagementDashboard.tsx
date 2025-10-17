@@ -10,7 +10,7 @@ import { LoadingPage } from './Loading'
 interface IoTDevice {
   id: string
   deviceId: string
-  deviceType: 'CREATOR' | 'BURNER'
+  deviceType: 'SEQUESTER' | 'EMITTER'
   location: string
   projectName: string
   description?: string
@@ -28,7 +28,7 @@ export function DeviceManagementDashboard({ className }: DeviceManagementDashboa
   const [devices, setDevices] = useState<IoTDevice[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'ALL' | 'CREATOR' | 'BURNER'>('ALL')
+  const [filter, setFilter] = useState<'ALL' | 'SEQUESTER' | 'EMITTER'>('ALL')
   const [sortBy, setSortBy] = useState<'createdAt' | 'lastSeen' | 'deviceId'>('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
@@ -145,7 +145,7 @@ export function DeviceManagementDashboard({ className }: DeviceManagementDashboa
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">IoT Device Management</h2>
-          <p className="text-gray-600">Manage your CREATOR and BURNER devices</p>
+          <p className="text-gray-600">Manage your SEQUESTER and EMITTER devices</p>
         </div>
         <IoTDeviceRegistration onDeviceRegistered={handleDeviceRegistered} />
       </div>
@@ -161,17 +161,17 @@ export function DeviceManagementDashboard({ className }: DeviceManagementDashboa
         <Card className="p-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
-              {devices.filter(d => d.deviceType === 'CREATOR').length}
+              {devices.filter(d => d.deviceType === 'SEQUESTER').length}
             </div>
-            <div className="text-sm text-gray-600">CREATOR Devices</div>
+            <div className="text-sm text-gray-600">SEQUESTER Devices</div>
           </div>
         </Card>
         <Card className="p-4">
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-600">
-              {devices.filter(d => d.deviceType === 'BURNER').length}
+              {devices.filter(d => d.deviceType === 'EMITTER').length}
             </div>
-            <div className="text-sm text-gray-600">BURNER Devices</div>
+            <div className="text-sm text-gray-600">EMITTER Devices</div>
           </div>
         </Card>
         <Card className="p-4">
@@ -195,12 +195,12 @@ export function DeviceManagementDashboard({ className }: DeviceManagementDashboa
             <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Type</label>
             <select
               value={filter}
-              onChange={(e) => setFilter(e.target.value as 'ALL' | 'CREATOR' | 'BURNER')}
+              onChange={(e) => setFilter(e.target.value as 'ALL' | 'SEQUESTER' | 'EMITTER')}
               className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="ALL">All Devices</option>
-              <option value="CREATOR">CREATOR Only</option>
-              <option value="BURNER">BURNER Only</option>
+              <option value="SEQUESTER">SEQUESTER Only</option>
+              <option value="EMITTER">EMITTER Only</option>
             </select>
           </div>
           
@@ -271,7 +271,7 @@ export function DeviceManagementDashboard({ className }: DeviceManagementDashboa
                       {device.deviceId}
                     </h3>
                     <Badge 
-                      variant={device.deviceType === 'CREATOR' ? 'success' : 'warning'}
+                      variant={device.deviceType === 'SEQUESTER' ? 'success' : 'warning'}
                     >
                       {device.deviceType}
                     </Badge>

@@ -64,7 +64,7 @@ function Toast({ message, type, onClose }: ToastProps) {
 
 interface DeviceRegistrationData {
   deviceId: string
-  deviceType: 'CREATOR' | 'BURNER'
+  deviceType: 'SEQUESTER' | 'EMITTER'
   location: string
   projectName: string
   description?: string
@@ -79,7 +79,7 @@ export function IoTDeviceRegistration({ onDeviceRegistered }: IoTDeviceRegistrat
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState<DeviceRegistrationData>({
     deviceId: '',
-    deviceType: 'CREATOR',
+    deviceType: 'SEQUESTER',
     location: '',
     projectName: '',
     description: ''
@@ -139,7 +139,7 @@ export function IoTDeviceRegistration({ onDeviceRegistered }: IoTDeviceRegistrat
         setIsModalOpen(false)
         setFormData({
           deviceId: '',
-          deviceType: 'CREATOR',
+          deviceType: 'SEQUESTER',
           location: '',
           projectName: '',
           description: ''
@@ -165,7 +165,7 @@ export function IoTDeviceRegistration({ onDeviceRegistered }: IoTDeviceRegistrat
     setIsModalOpen(false)
     setFormData({
       deviceId: '',
-      deviceType: 'CREATOR',
+      deviceType: 'SEQUESTER',
       location: '',
       projectName: '',
       description: ''
@@ -218,7 +218,7 @@ export function IoTDeviceRegistration({ onDeviceRegistered }: IoTDeviceRegistrat
                 type="text"
                 value={formData.deviceId}
                 onChange={(e) => handleInputChange('deviceId', e.target.value)}
-                placeholder="e.g., CREATOR_001, BURNER_001"
+                placeholder="e.g., SEQUESTER_001, EMITTER_001"
                 error={errors.deviceId}
                 helperText="Use letters, numbers, hyphens, and underscores only"
                 leftIcon={
@@ -239,58 +239,58 @@ export function IoTDeviceRegistration({ onDeviceRegistered }: IoTDeviceRegistrat
               </label>
               <div className="grid grid-cols-2 gap-3">
                 <label className={`relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                  formData.deviceType === 'CREATOR' 
+                  formData.deviceType === 'SEQUESTER' 
                     ? 'border-green-500 bg-green-50' 
                     : 'border-gray-200 hover:border-gray-300'
                 }`}>
                   <input
                     type="radio"
                     name="deviceType"
-                    value="CREATOR"
-                    checked={formData.deviceType === 'CREATOR'}
-                    onChange={(e) => handleInputChange('deviceType', e.target.value as 'CREATOR' | 'BURNER')}
+                    value="SEQUESTER"
+                    checked={formData.deviceType === 'SEQUESTER'}
+                    onChange={(e) => handleInputChange('deviceType', e.target.value as 'SEQUESTER' | 'EMITTER')}
                     className="sr-only"
                   />
                   <div className="flex items-center space-x-2 mb-2">
-                    <div className={`p-1 rounded ${formData.deviceType === 'CREATOR' ? 'bg-green-100' : 'bg-gray-100'}`}>
-                      <svg className={`w-4 h-4 ${formData.deviceType === 'CREATOR' ? 'text-green-600' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className={`p-1 rounded ${formData.deviceType === 'SEQUESTER' ? 'bg-green-100' : 'bg-gray-100'}`}>
+                      <svg className={`w-4 h-4 ${formData.deviceType === 'SEQUESTER' ? 'text-green-600' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
                     </div>
-                    <span className={`font-medium ${formData.deviceType === 'CREATOR' ? 'text-green-700' : 'text-gray-700'}`}>
-                      CREATOR
+                    <span className={`font-medium ${formData.deviceType === 'SEQUESTER' ? 'text-green-700' : 'text-gray-700'}`}>
+                      SEQUESTER
                     </span>
                   </div>
-                  <p className={`text-xs ${formData.deviceType === 'CREATOR' ? 'text-green-600' : 'text-gray-500'}`}>
-                    Generates carbon credits from renewable energy
+                  <p className={`text-xs ${formData.deviceType === 'SEQUESTER' ? 'text-green-600' : 'text-gray-500'}`}>
+                    Carbon sequestration device
                   </p>
                 </label>
 
                 <label className={`relative flex flex-col p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                  formData.deviceType === 'BURNER' 
+                  formData.deviceType === 'EMITTER' 
                     ? 'border-orange-500 bg-orange-50' 
                     : 'border-gray-200 hover:border-gray-300'
                 }`}>
                   <input
                     type="radio"
                     name="deviceType"
-                    value="BURNER"
-                    checked={formData.deviceType === 'BURNER'}
-                    onChange={(e) => handleInputChange('deviceType', e.target.value as 'CREATOR' | 'BURNER')}
+                    value="EMITTER"
+                    checked={formData.deviceType === 'EMITTER'}
+                    onChange={(e) => handleInputChange('deviceType', e.target.value as 'SEQUESTER' | 'EMITTER')}
                     className="sr-only"
                   />
                   <div className="flex items-center space-x-2 mb-2">
-                    <div className={`p-1 rounded ${formData.deviceType === 'BURNER' ? 'bg-orange-100' : 'bg-gray-100'}`}>
-                      <svg className={`w-4 h-4 ${formData.deviceType === 'BURNER' ? 'text-orange-600' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className={`p-1 rounded ${formData.deviceType === 'EMITTER' ? 'bg-orange-100' : 'bg-gray-100'}`}>
+                      <svg className={`w-4 h-4 ${formData.deviceType === 'EMITTER' ? 'text-orange-600' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
                       </svg>
                     </div>
-                    <span className={`font-medium ${formData.deviceType === 'BURNER' ? 'text-orange-700' : 'text-gray-700'}`}>
-                      BURNER
+                    <span className={`font-medium ${formData.deviceType === 'EMITTER' ? 'text-orange-700' : 'text-gray-700'}`}>
+                      EMITTER
                     </span>
                   </div>
-                  <p className={`text-xs ${formData.deviceType === 'BURNER' ? 'text-orange-600' : 'text-gray-500'}`}>
-                    Burns carbon credits for energy consumption
+                  <p className={`text-xs ${formData.deviceType === 'EMITTER' ? 'text-orange-600' : 'text-gray-500'}`}>
+                    Carbon emission device
                   </p>
                 </label>
               </div>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { CustomConnectButton, WalletInfo } from '@/components/ConnectButton'
 import { AuthButton } from '@/components/auth/AuthButton'
 import { AuthenticationStatus } from '@/components/auth/AuthenticationHandler'
+import { MQTTStatusBadge } from '@/components/MQTTStatusIndicator'
 import { useAccount } from 'wagmi'
 import { useUser } from '@/lib/auth/context'
 import { APP_CONFIG, DESIGN_SYSTEM } from '@/lib/constants'
@@ -21,6 +22,9 @@ const navigationItems: NavigationItem[] = [
   { name: 'Trade', href: '/swap', icon: '🔄' },
   { name: 'NFTs', href: '/nfts', icon: '🎨' },
   { name: 'IoT Devices', href: '/iot-devices', icon: '📱' },
+  { name: 'IoT Data', href: '/iot-data', icon: '📊' },
+  { name: 'Time-Series', href: '/timeseries', icon: '📈' },
+  { name: 'User Credits', href: '/user-credits', icon: '🏆' },
   { name: 'Developer', href: '/developer', icon: '⚙️' },
   { name: 'Pools', href: '/pool', icon: '🏊' },
   { name: 'Governance', href: '/vote', icon: '🗳️' },
@@ -88,6 +92,9 @@ export function Navigation() {
                 </div>
               </div>
             </div>
+
+            {/* MQTT Status */}
+            <MQTTStatusBadge />
 
             {/* Wallet Connect */}
             <div className="flex flex-col items-end gap-2">

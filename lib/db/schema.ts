@@ -5,7 +5,7 @@ import { relations } from 'drizzle-orm'
 const generateId = () => `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
 
 // Enums
-export const deviceTypeEnum = pgEnum('device_type', ['CREATOR', 'BURNER'])
+export const deviceTypeEnum = pgEnum('device_type', ['SEQUESTER', 'EMITTER'])
 export const transactionTypeEnum = pgEnum('transaction_type', ['MINT', 'BURN'])
 export const transactionStatusEnum = pgEnum('transaction_status', ['PENDING', 'CONFIRMED', 'FAILED'])
 export const userRoleEnum = pgEnum('user_role', ['USER', 'DEVELOPER', 'ADMIN'])
@@ -85,9 +85,41 @@ export const carbonCreditTransactions = pgTable('carbon_credit_transactions', {
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
 
+// User Carbon Credits Table
+export const userCarbonCredits = pgTable('user_carbon_credits', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull(),
+  credits: decimal('credits', { precision: 18, scale: 8 }).notNull().default('0'),
+  co2Reduced: decimal('co2_reduced', { precision: 10, scale: 2 }).notNull().default('0'),
+  energySaved: decimal('energy_saved', { precision: 10, scale: 2 }).notNull().default('0'),
+  temperatureImpact: decimal('temperature_impact', { precision: 5, scale: 2 }).notNull().default('0'),
+  humidityImpact: decimal('humidity_impact', { precision: 5, scale: 2 }).notNull().default('0'),
+  isOnline: boolean('is_online').notNull().default(false),
+  timestamp: timestamp('timestamp').notNull().defaultNow(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})
+
+// User Credit History Table
+export const userCreditHistory = pgTable('user_credit_history', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  userId: text('user_id').notNull(),
+  creditsEarned: decimal('credits_earned', { precision: 18, scale: 8 }).notNull(),
+  co2Reduced: decimal('co2_reduced', { precision: 10, scale: 2 }).notNull(),
+  energySaved: decimal('energy_saved', { precision: 10, scale: 2 }).notNull(),
+  temperatureImpact: decimal('temperature_impact', { precision: 5, scale: 2 }).notNull(),
+  humidityImpact: decimal('humidity_impact', { precision: 5, scale: 2 }).notNull(),
+  source: text('source').notNull(), // 'IOT_DEVICE', 'MANUAL', 'REFERRAL', etc.
+  sourceId: text('source_id'), // device_id or other source identifier
+  metadata: json('metadata'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   applications: many(applications),
+  carbonCredits: many(userCarbonCredits),
+  creditHistory: many(userCreditHistory),
 }))
 
 export const applicationsRelations = relations(applications, ({ one, many }) => ({
@@ -121,6 +153,20 @@ export const carbonCreditTransactionsRelations = relations(carbonCreditTransacti
   }),
 }))
 
+export const userCarbonCreditsRelations = relations(userCarbonCredits, ({ one }) => ({
+  user: one(users, {
+    fields: [userCarbonCredits.userId],
+    references: [users.id],
+  }),
+}))
+
+export const userCreditHistoryRelations = relations(userCreditHistory, ({ one }) => ({
+  user: one(users, {
+    fields: [userCreditHistory.userId],
+    references: [users.id],
+  }),
+}))
+
 // Types
 export type User = typeof users.$inferSelect
 export type NewUser = typeof users.$inferInsert
@@ -132,6 +178,10 @@ export type DeviceData = typeof deviceData.$inferSelect
 export type NewDeviceData = typeof deviceData.$inferInsert
 export type CarbonCreditTransaction = typeof carbonCreditTransactions.$inferSelect
 export type NewCarbonCreditTransaction = typeof carbonCreditTransactions.$inferInsert
+export type UserCarbonCredits = typeof userCarbonCredits.$inferSelect
+export type NewUserCarbonCredits = typeof userCarbonCredits.$inferInsert
+export type UserCreditHistory = typeof userCreditHistory.$inferSelect
+export type NewUserCreditHistory = typeof userCreditHistory.$inferInsert
 export type UserRole = typeof userRoleEnum.enumValues[number]
 export type ApplicationStatus = typeof applicationStatusEnum.enumValues[number]
 export type ApiKeyStatus = typeof apiKeyStatusEnum.enumValues[number]
