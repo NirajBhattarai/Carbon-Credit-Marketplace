@@ -3,13 +3,31 @@
 import { wagmiAdapter, projectId } from '@/config';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createAppKit } from '@reown/appkit/react';
-import {
-  mainnet,
-  arbitrum,
-  polygon,
-  base,
-  scroll,
-} from '@reown/appkit/networks';
+// Hedera Testnet configuration
+const hederaTestnet = {
+  id: 296,
+  name: 'Hedera Testnet',
+  nativeCurrency: {
+    name: 'HBAR',
+    symbol: 'HBAR',
+    decimals: 18,
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://testnet.hashio.io/api'],
+    },
+    public: {
+      http: ['https://testnet.hashio.io/api'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Hashscan',
+      url: 'https://hashscan.io/testnet',
+    },
+  },
+  testnet: true,
+};
 import React, { type ReactNode } from 'react';
 import { cookieToInitialState, WagmiProvider, type Config } from 'wagmi';
 
@@ -33,8 +51,8 @@ const metadata = {
 const modal = createAppKit({
   adapters: [wagmiAdapter],
   projectId,
-  networks: [mainnet, arbitrum, polygon, base, scroll],
-  defaultNetwork: mainnet,
+  networks: [hederaTestnet],
+  defaultNetwork: hederaTestnet,
   metadata: metadata,
   features: {
     analytics: true, // Optional - defaults to your Cloud configuration

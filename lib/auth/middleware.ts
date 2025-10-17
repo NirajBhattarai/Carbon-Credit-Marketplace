@@ -335,25 +335,44 @@ export async function authenticateJWTPages(
 export async function authenticateApiKeyPages(
   request: NextApiRequest
 ): Promise<{ status: number; data: any } | null> {
+  console.log(`[API Key Auth] Starting API key authentication...`);
   const authHeader = request.headers.authorization;
+  console.log(
+    `[API Key Auth] Authorization header:`,
+    authHeader ? 'Bearer ***' : 'none'
+  );
+
   const token = extractTokenFromHeader(authHeader);
+  console.log(
+    `[API Key Auth] Extracted token:`,
+    token ? 'present' : 'missing'
+  );
 
   if (!token) {
+    console.log(`[API Key Auth] No token found in authorization header`);
     return {
       status: 401,
       data: { error: 'API key required' },
     };
   }
 
+  console.log(`[API Key Auth] Verifying API key JWT token...`);
   const payload = verifyApiKeyJWT(token);
   if (!payload) {
+    console.log(`[API Key Auth] API key JWT verification failed`);
     return {
       status: 401,
       data: { error: 'Invalid or expired API key' },
     };
   }
 
+  console.log(
+    `[API Key Auth] API key JWT verified successfully for application:`,
+    payload.applicationId
+  );
+
   // Verify API key exists and is active
+  console.log(`[API Key Auth] Looking up API key in database:`, payload.applicationId);
   const apiKey = await db
     .select({
       id: apiKeys.id,
@@ -372,6 +391,7 @@ export async function authenticateApiKeyPages(
     .limit(1);
 
   if (apiKey.length === 0) {
+    console.log(`[API Key Auth] API key not found in database`);
     return {
       status: 401,
       data: { error: 'API key not found' },
@@ -379,9 +399,11 @@ export async function authenticateApiKeyPages(
   }
 
   const key = apiKey[0];
+  console.log(`[API Key Auth] API key found:`, key.id);
 
   // Check if API key is active
   if (key.status !== 'ACTIVE') {
+    console.log(`[API Key Auth] API key is not active:`, key.status);
     return {
       status: 401,
       data: { error: 'API key is not active' },
@@ -390,6 +412,7 @@ export async function authenticateApiKeyPages(
 
   // Check if API key is expired
   if (key.expiresAt && new Date() > key.expiresAt) {
+    console.log(`[API Key Auth] API key has expired:`, key.expiresAt);
     return {
       status: 401,
       data: { error: 'API key has expired' },
@@ -398,11 +421,14 @@ export async function authenticateApiKeyPages(
 
   // Check if application is active
   if (key.application.status !== 'ACTIVE') {
+    console.log(`[API Key Auth] Application is not active:`, key.application.status);
     return {
       status: 401,
       data: { error: 'Application is not active' },
     };
   }
+
+  console.log(`[API Key Auth] API key authentication successful for application:`, key.application.name);
 
   // Add application info to request
   (request as AuthenticatedApiRequest).application = {

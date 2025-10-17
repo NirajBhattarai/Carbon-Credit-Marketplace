@@ -60,8 +60,20 @@ export const applications = pgTable('applications', {
   website: text('website'),
   status: applicationStatusEnum('status').notNull().default('ACTIVE'),
   metadata: json('metadata'),
-  // Single API Key field
-  apiKey: text('api_key').unique(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// API Keys Table
+export const apiKeys = pgTable('api_keys', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  applicationId: text('application_id').notNull(),
+  keyHash: text('key_hash').notNull().unique(),
+  status: apiKeyStatusEnum('status').notNull().default('ACTIVE'),
+  expiresAt: timestamp('expires_at'),
+  lastUsedAt: timestamp('last_used_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -184,8 +196,16 @@ export const applicationsRelations = relations(
       references: [users.id],
     }),
     iotDevices: many(iotDevices),
+    apiKeys: many(apiKeys),
   })
 );
+
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+  application: one(applications, {
+    fields: [apiKeys.applicationId],
+    references: [applications.id],
+  }),
+}));
 
 export const iotDevicesRelations = relations(iotDevices, ({ one, many }) => ({
   application: one(applications, {
@@ -238,6 +258,8 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Application = typeof applications.$inferSelect;
 export type NewApplication = typeof applications.$inferInsert;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type NewApiKey = typeof apiKeys.$inferInsert;
 export type IoTDevice = typeof iotDevices.$inferSelect;
 export type NewIoTDevice = typeof iotDevices.$inferInsert;
 export type DeviceData = typeof deviceData.$inferSelect;

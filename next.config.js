@@ -2,6 +2,13 @@
 const nextConfig = {
   webpack: (config) => {
     config.externals.push("pino-pretty", "lokijs", "encoding");
+    
+    // Resolve async storage issue for MetaMask SDK
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      '@react-native-async-storage/async-storage': false,
+    };
+    
     return config;
   },
   images: {

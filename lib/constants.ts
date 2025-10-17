@@ -21,26 +21,68 @@ export const API_CONFIG = {
 // Blockchain Configuration
 export const BLOCKCHAIN_CONFIG = {
   networks: {
-    ethereum: {
-      chainId: 1,
-      name: 'Ethereum Mainnet',
-      rpcUrl: 'https://mainnet.infura.io/v3/YOUR_PROJECT_ID',
-      explorerUrl: 'https://etherscan.io',
-    },
-    polygon: {
-      chainId: 137,
-      name: 'Polygon',
-      rpcUrl: 'https://polygon-rpc.com',
-      explorerUrl: 'https://polygonscan.com',
-    },
-    arbitrum: {
-      chainId: 42161,
-      name: 'Arbitrum One',
-      rpcUrl: 'https://arb1.arbitrum.io/rpc',
-      explorerUrl: 'https://arbiscan.io',
+    hedera: {
+      chainId: 296,
+      name: 'Hedera Testnet',
+      rpcUrl: 'https://testnet.hashio.io/api',
+      explorerUrl: 'https://hashscan.io/testnet',
+      nativeCurrency: {
+        name: 'HBAR',
+        symbol: 'HBAR',
+        decimals: 18,
+      },
     },
   },
-  defaultNetwork: 'ethereum',
+  defaultNetwork: 'hedera',
+} as const;
+
+// Hedera Contract Configuration
+export const HEDERA_CONFIG = {
+  testnet: {
+    chainId: 296,
+    rpcUrl: 'https://testnet.hashio.io/api',
+    explorerUrl: 'https://hashscan.io/testnet',
+    // Contract addresses will be added after deployment
+    contracts: {
+      carbonCreditToken: '', // To be filled after deployment
+      dynamicPricingOracle: '', // To be filled after deployment
+      crossChainCarbonCredit: '', // To be filled after deployment
+    },
+  },
+  mainnet: {
+    chainId: 295,
+    rpcUrl: 'https://mainnet.hashio.io/api',
+    explorerUrl: 'https://hashscan.io',
+    contracts: {
+      // Mainnet addresses will be added later
+    },
+  },
+} as const;
+
+// Oracle Configuration
+export const ORACLE_CONFIG = {
+  chainlink: {
+    // ETH/USD price feed addresses for Hedera
+    priceFeeds: {
+      hedera: '', // To be configured for Hedera testnet
+    },
+    // Carbon credit base price in USD (8 decimals)
+    baseCarbonCreditPrice: 25 * 10**8, // $25
+  },
+} as const;
+
+// Cross-Chain Bridge Configuration
+export const BRIDGE_CONFIG = {
+  layerZero: {
+    // LayerZero endpoint addresses for Hedera
+    endpoints: {
+      hedera: '', // To be configured for Hedera testnet
+    },
+    // Chain IDs for LayerZero
+    chainIds: {
+      hedera: 0, // To be determined
+    },
+  },
 } as const;
 
 // Pagination Configuration
