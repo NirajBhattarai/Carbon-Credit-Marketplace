@@ -82,6 +82,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (token) {
+      console.log('🔍 Found existing auth token, restoring user data...');
       dispatch({ type: 'SET_AUTH_TOKEN', payload: token });
       dispatch({ type: 'SET_AUTHENTICATED', payload: true });
 
@@ -99,6 +100,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             console.log('✅ User data restored from token:', data.user);
           } else {
             // Token is invalid, clear it
+            console.log('❌ Token is invalid, clearing authentication');
             localStorage.removeItem('auth_token');
             dispatch({ type: 'SET_AUTH_TOKEN', payload: null });
             dispatch({ type: 'SET_AUTHENTICATED', payload: false });
@@ -110,6 +112,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           dispatch({ type: 'SET_AUTH_TOKEN', payload: null });
           dispatch({ type: 'SET_AUTHENTICATED', payload: false });
         });
+    } else {
+      console.log('ℹ️ No auth token found in localStorage');
     }
   }, []);
 

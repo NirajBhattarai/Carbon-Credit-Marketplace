@@ -21,15 +21,25 @@ export function EnhancedConnectButton() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
-  const { loginWithWallet, disconnectWallet, isLoading, user } = useUser();
+  const { loginWithWallet, disconnectWallet, isLoading, user, isAuthenticated } = useUser();
   const [isSigning, setIsSigning] = useState(false);
+  const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
 
   // Handle JWT authentication when wallet connects
   useEffect(() => {
     const handleWalletConnect = async () => {
-      if (isConnected && address && !user && !isSigning) {
+      // Only attempt authentication if:
+      // 1. Wallet is connected
+      // 2. We have an address
+      // 3. User is not already authenticated
+      // 4. We haven't already attempted authentication
+      // 5. We're not currently signing
+      if (isConnected && address && !isAuthenticated && !hasAttemptedAuth && !isSigning) {
         try {
           setIsSigning(true);
+          setHasAttemptedAuth(true);
+
+          console.log('🔐 Starting authentication for wallet:', address);
 
           // Create a message to sign
           const message = `Sign this message to authenticate with EcoTrade Carbon Credit Marketplace.\n\nWallet: ${address}\nTimestamp: ${Date.now()}`;
@@ -42,9 +52,15 @@ export function EnhancedConnectButton() {
 
           if (!result.success) {
             console.error('Login failed:', result.error);
+            // Reset the attempt flag on failure so user can try again
+            setHasAttemptedAuth(false);
+          } else {
+            console.log('✅ Authentication successful');
           }
         } catch (error) {
           console.error('Authentication error:', error);
+          // Reset the attempt flag on error so user can try again
+          setHasAttemptedAuth(false);
         } finally {
           setIsSigning(false);
         }
@@ -57,13 +73,22 @@ export function EnhancedConnectButton() {
   }, [
     isConnected,
     address,
-    user,
+    isAuthenticated,
+    hasAttemptedAuth,
     isSigning,
     signMessageAsync,
     loginWithWallet,
   ]);
 
+  // Reset authentication attempt flag when wallet disconnects
+  useEffect(() => {
+    if (!isConnected) {
+      setHasAttemptedAuth(false);
+    }
+  }, [isConnected]);
+
   const handleDisconnect = () => {
+    setHasAttemptedAuth(false);
     disconnect();
     disconnectWallet();
   };
