@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { db, applications, users, apiKeys } from '@/lib/db';
+import { db, applications, users } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { RedisService } from '../../../lib/redis';
 
@@ -38,12 +38,10 @@ export default async function handler(
         username: users.username,
         applicationName: applications.name,
         applicationId: applications.id,
-        userId: users.id,
       })
-      .from(apiKeys)
-      .innerJoin(applications, eq(apiKeys.applicationId, applications.id))
-      .innerJoin(users, eq(applications.userId, users.id))
-      .where(eq(apiKeys.keyHash, apiKey))
+      .from(applications)
+      .innerJoin(users, eq(applications.walletAddress, users.walletAddress))
+      .where(eq(applications.apiKey, apiKey))
       .limit(1);
 
     if (result.length === 0) {
@@ -53,7 +51,7 @@ export default async function handler(
       });
     }
 
-    const { walletAddress, username, applicationName, applicationId, userId } =
+    const { walletAddress, username, applicationName, applicationId } =
       result[0];
 
     const responseData = {
@@ -61,7 +59,6 @@ export default async function handler(
       username,
       applicationName,
       applicationId,
-      userId,
       apiKey,
     };
 

@@ -3,7 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { CustomConnectButton, WalletInfo } from '@/components/ConnectButton';
+import {
+  CustomConnectButton,
+  WalletInfo,
+  EnhancedConnectButton,
+} from '@/components/ConnectButton';
 import { AuthButton } from '@/components/auth/AuthButton';
 import { AuthenticationStatus } from '@/components/auth/AuthenticationHandler';
 import { useAccount } from 'wagmi';
@@ -29,7 +33,6 @@ const navigationItems: NavigationItem[] = [
     badge: 'NEW',
   },
   { name: 'Developer', href: '/developer', icon: '⚙️' },
-  { name: 'Analytics', href: '/charts', icon: '📊' },
 ];
 
 export function Navigation() {
@@ -95,14 +98,14 @@ export function Navigation() {
           <div className='flex items-center space-x-1 sm:space-x-2 lg:space-x-3 flex-shrink-0'>
             {/* Wallet Connect - Responsive */}
             <div className='hidden sm:flex items-center gap-1 lg:gap-1.5'>
-              <CustomConnectButton />
+              <EnhancedConnectButton />
               <AuthButton />
               <AuthenticationStatus />
             </div>
 
             {/* Mobile Wallet Connect */}
             <div className='sm:hidden flex items-center space-x-1'>
-              <CustomConnectButton />
+              <EnhancedConnectButton />
             </div>
 
             {/* Mobile menu button */}

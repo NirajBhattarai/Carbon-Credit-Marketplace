@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/db';
-import { applications, apiKeys } from '@/lib/db/schema';
+import { applications } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { authenticateJWTPages } from '@/lib/auth/middleware';
 import { generateApiKey, generateApiKeyJWT } from '@/lib/auth/jwt';
@@ -24,15 +24,18 @@ export default async function handler(
         return res.status(authError.status).json(authError.data);
       }
 
-      const userId = (req as any).user.id;
-      console.log(`[Applications API] Fetching applications for user:`, userId);
+      const walletAddress = (req as any).user.walletAddress;
+      console.log(
+        `[Applications API] Fetching applications for wallet:`,
+        walletAddress
+      );
 
       // Try to get from Redis cache first
-      const cachedData = await RedisService.getApplicationList(userId);
+      const cachedData = await RedisService.getApplicationList(walletAddress);
       if (cachedData) {
         console.log(
-          `[Applications API] Returning cached applications for user:`,
-          userId
+          `[Applications API] Returning cached applications for wallet:`,
+          walletAddress
         );
         return res.status(200).json({
           success: true,
@@ -49,7 +52,7 @@ export default async function handler(
       const userApplications = await db
         .select()
         .from(applications)
-        .where(eq(applications.userId, userId))
+        .where(eq(applications.walletAddress, walletAddress))
         .orderBy(applications.createdAt);
 
       console.log(
@@ -57,7 +60,7 @@ export default async function handler(
       );
 
       // Cache the result
-      await RedisService.cacheApplicationList(userId, userApplications);
+      await RedisService.cacheApplicationList(walletAddress, userApplications);
 
       return res.status(200).json({
         success: true,
@@ -86,10 +89,13 @@ export default async function handler(
         return res.status(authError.status).json(authError.data);
       }
 
-      const userId = (req as any).user.id;
+      const walletAddress = (req as any).user.walletAddress;
       const { name, description, website } = req.body;
 
-      console.log(`[Applications API] Creating application for user:`, userId);
+      console.log(
+        `[Applications API] Creating application for wallet:`,
+        walletAddress
+      );
 
       if (!name) {
         console.log(`[Applications API] Missing required field: name`);
@@ -98,13 +104,18 @@ export default async function handler(
         });
       }
 
-      // Create application in database
+      // Generate API key automatically
+      console.log(`[Applications API] Generating API key...`);
+      const { key } = generateApiKey();
+
+      // Create application in database with API key
       const applicationData: any = {
-        userId,
+        walletAddress,
         name,
         description: description || null,
         website: website || null,
         status: 'ACTIVE',
+        apiKey: key,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -115,135 +126,31 @@ export default async function handler(
         .returning();
 
       console.log(
-        `[Applications API] Application created with ID: ${newApplication[0].id}`
-      );
-
-      const response: any = {
-        success: true,
-        application: newApplication[0],
-      };
-
-      return res.status(201).json(response);
-    } catch (error) {
-      console.error(`[Applications API] POST error:`, {
-        error: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        requestBody: req.body,
-      });
-      return res.status(500).json({
-        error: 'Internal server error',
-      });
-    }
-  }
-
-  if (req.method === 'PUT') {
-    try {
-      console.log(
-        `[Applications API] PUT request - creating API key for application`
-      );
-      console.log(`[Applications API] Request body:`, req.body);
-
-      const authError = await authenticateJWTPages(req);
-      if (authError) {
-        console.log(`[Applications API] Authentication failed:`, authError);
-        return res.status(authError.status).json(authError.data);
-      }
-
-      const userId = (req as any).user.id;
-      const { applicationId, name, expiresInDays, permissions } = req.body;
-
-      console.log(
-        `[Applications API] Creating API key for application:`,
-        applicationId
-      );
-
-      if (!applicationId) {
-        console.log(`[Applications API] Missing required field: applicationId`);
-        return res.status(400).json({
-          error: 'Application ID is required',
-        });
-      }
-
-      // Verify the application belongs to the user
-      const application = await db
-        .select()
-        .from(applications)
-        .where(
-          and(
-            eq(applications.id, applicationId),
-            eq(applications.userId, userId)
-          )
-        )
-        .limit(1);
-
-      console.log(
-        `[Applications API] Application query result:`,
-        application.length > 0 ? 'found' : 'not found'
-      );
-
-      if (application.length === 0) {
-        console.log(
-          `[Applications API] Application not found - ID: ${applicationId}, User: ${userId}`
-        );
-        return res.status(404).json({ error: 'Application not found' });
-      }
-
-      // Check if application already has an API key
-      const existingApiKeys = await db
-        .select()
-        .from(apiKeys)
-        .where(eq(apiKeys.applicationId, applicationId))
-        .limit(1);
-
-      if (existingApiKeys.length > 0) {
-        console.log(`[Applications API] Application already has an API key`);
-        return res
-          .status(400)
-          .json({ error: 'Application already has an API key' });
-      }
-
-      console.log(`[Applications API] Generating API key...`);
-      const { key, hash } = generateApiKey();
-
-      // Calculate expiration date
-      const expiresAt = expiresInDays
-        ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
-        : null;
-
-      console.log(`[Applications API] Creating API key record...`);
-      const newApiKey = await db
-        .insert(apiKeys)
-        .values({
-          applicationId,
-          keyHash: hash,
-          status: 'ACTIVE',
-          expiresAt,
-        })
-        .returning();
-
-      console.log(
-        `[Applications API] API key created for application: ${applicationId}`
+        `[Applications API] Application created with ID: ${newApplication[0].id} and API key: ${key.substring(0, 8)}...`
       );
 
       // Generate JWT token for the API key
       console.log(`[Applications API] Generating JWT token...`);
       const token = generateApiKeyJWT({
-        applicationId,
-        userId,
-        permissions: permissions || ['read:devices', 'write:devices'],
+        applicationId: newApplication[0].id,
+        walletAddress,
+        permissions: ['read:devices', 'write:devices'],
       });
 
-      return res.status(200).json({
+      const response: any = {
         success: true,
+        application: newApplication[0],
         apiKey: {
           key,
           token,
-          name: `${application[0].name} API Key`,
-          permissions: permissions || ['read:devices', 'write:devices'],
+          name: `${name} API Key`,
+          permissions: ['read:devices', 'write:devices'],
         },
-      });
+      };
+
+      return res.status(201).json(response);
     } catch (error) {
-      console.error(`[Applications API] PUT error:`, {
+      console.error(`[Applications API] POST error:`, {
         error: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
         requestBody: req.body,

@@ -30,16 +30,10 @@ export const applicationStatusEnum = pgEnum('application_status', [
   'INACTIVE',
   'SUSPENDED',
 ]);
-export const apiKeyStatusEnum = pgEnum('api_key_status', [
-  'ACTIVE',
-  'INACTIVE',
-  'REVOKED',
-]);
 
 // Users Table
 export const users = pgTable('users', {
-  id: text('id').primaryKey().$defaultFn(generateId),
-  walletAddress: text('wallet_address').notNull().unique(),
+  walletAddress: text('wallet_address').primaryKey(),
   username: text('username').unique(),
   email: text('email').unique(),
   role: userRoleEnum('role').notNull().default('USER'),
@@ -54,26 +48,13 @@ export const applications = pgTable('applications', {
   id: text('id')
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  userId: text('user_id').notNull(),
+  walletAddress: text('wallet_address').notNull(),
   name: text('name').notNull(),
   description: text('description'),
   website: text('website'),
   status: applicationStatusEnum('status').notNull().default('ACTIVE'),
+  apiKey: text('api_key').unique(),
   metadata: json('metadata'),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
-
-// API Keys Table
-export const apiKeys = pgTable('api_keys', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  applicationId: text('application_id').notNull(),
-  keyHash: text('key_hash').notNull().unique(),
-  status: apiKeyStatusEnum('status').notNull().default('ACTIVE'),
-  expiresAt: timestamp('expires_at'),
-  lastUsedAt: timestamp('last_used_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
@@ -84,7 +65,7 @@ export const iotDevices = pgTable('iot_devices', {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   deviceId: text('device_id').notNull().unique(),
-  applicationId: text('application_id').notNull(),
+  walletAddress: text('wallet_address').notNull(),
   deviceType: deviceTypeEnum('device_type').notNull(),
   location: text('location').notNull(),
   projectName: text('project_name').notNull(),
@@ -133,7 +114,7 @@ export const userCarbonCredits = pgTable('user_carbon_credits', {
   id: text('id')
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  userId: text('user_id').notNull(),
+  walletAddress: text('wallet_address').notNull(),
   credits: decimal('credits', { precision: 18, scale: 8 })
     .notNull()
     .default('0'),
@@ -160,7 +141,7 @@ export const userCreditHistory = pgTable('user_credit_history', {
   id: text('id')
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
-  userId: text('user_id').notNull(),
+  walletAddress: text('wallet_address').notNull(),
   creditsEarned: decimal('credits_earned', {
     precision: 18,
     scale: 8,
@@ -188,29 +169,17 @@ export const usersRelations = relations(users, ({ many }) => ({
   creditHistory: many(userCreditHistory),
 }));
 
-export const applicationsRelations = relations(
-  applications,
-  ({ one, many }) => ({
-    user: one(users, {
-      fields: [applications.userId],
-      references: [users.id],
-    }),
-    iotDevices: many(iotDevices),
-    apiKeys: many(apiKeys),
-  })
-);
-
-export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
-  application: one(applications, {
-    fields: [apiKeys.applicationId],
-    references: [applications.id],
+export const applicationsRelations = relations(applications, ({ one }) => ({
+  user: one(users, {
+    fields: [applications.walletAddress],
+    references: [users.walletAddress],
   }),
 }));
 
 export const iotDevicesRelations = relations(iotDevices, ({ one, many }) => ({
-  application: one(applications, {
-    fields: [iotDevices.applicationId],
-    references: [applications.id],
+  user: one(users, {
+    fields: [iotDevices.walletAddress],
+    references: [users.walletAddress],
   }),
   deviceData: many(deviceData),
   transactions: many(carbonCreditTransactions),
@@ -237,8 +206,8 @@ export const userCarbonCreditsRelations = relations(
   userCarbonCredits,
   ({ one }) => ({
     user: one(users, {
-      fields: [userCarbonCredits.userId],
-      references: [users.id],
+      fields: [userCarbonCredits.walletAddress],
+      references: [users.walletAddress],
     }),
   })
 );
@@ -247,8 +216,8 @@ export const userCreditHistoryRelations = relations(
   userCreditHistory,
   ({ one }) => ({
     user: one(users, {
-      fields: [userCreditHistory.userId],
-      references: [users.id],
+      fields: [userCreditHistory.walletAddress],
+      references: [users.walletAddress],
     }),
   })
 );
@@ -258,8 +227,6 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Application = typeof applications.$inferSelect;
 export type NewApplication = typeof applications.$inferInsert;
-export type ApiKey = typeof apiKeys.$inferSelect;
-export type NewApiKey = typeof apiKeys.$inferInsert;
 export type IoTDevice = typeof iotDevices.$inferSelect;
 export type NewIoTDevice = typeof iotDevices.$inferInsert;
 export type DeviceData = typeof deviceData.$inferSelect;
@@ -275,7 +242,6 @@ export type NewUserCreditHistory = typeof userCreditHistory.$inferInsert;
 export type UserRole = (typeof userRoleEnum.enumValues)[number];
 export type ApplicationStatus =
   (typeof applicationStatusEnum.enumValues)[number];
-export type ApiKeyStatus = (typeof apiKeyStatusEnum.enumValues)[number];
 export type DeviceType = (typeof deviceTypeEnum.enumValues)[number];
 export type TransactionType = (typeof transactionTypeEnum.enumValues)[number];
 export type TransactionStatus =

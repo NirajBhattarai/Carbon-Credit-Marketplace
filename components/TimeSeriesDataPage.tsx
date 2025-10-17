@@ -61,7 +61,10 @@ export function TimeSeriesDataPage({ className }: TimeSeriesDataPageProps) {
     sequesterDevices.forEach((data, deviceId) => {
       const deviceHistoricalData =
         historicalData?.filter(
-          point => point.device_id === deviceId || point.api_key === data.apiKey
+          point =>
+            point.device_id === deviceId ||
+            point.mac === data.mac ||
+            point.api_key === data.apiKey
         ) || [];
 
       const chartData = processChartData(deviceHistoricalData);
@@ -80,7 +83,10 @@ export function TimeSeriesDataPage({ className }: TimeSeriesDataPageProps) {
     emitterDevices.forEach((data, deviceId) => {
       const deviceHistoricalData =
         historicalData?.filter(
-          point => point.device_id === deviceId || point.api_key === data.apiKey
+          point =>
+            point.device_id === deviceId ||
+            point.mac === data.mac ||
+            point.api_key === data.apiKey
         ) || [];
 
       const chartData = processChartData(deviceHistoricalData);

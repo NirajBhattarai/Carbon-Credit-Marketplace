@@ -107,7 +107,11 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
               )}
             </div>
             <div>
-              <h3 className='font-semibold text-gray-900'>{deviceId}</h3>
+              <h3 className='font-semibold text-gray-900'>
+                {data.walletAddress
+                  ? `${data.walletAddress.slice(0, 4)}...${data.walletAddress.slice(-3)}`
+                  : deviceId}
+              </h3>
               {data.walletAddress && (
                 <div className='flex items-center space-x-1 text-xs text-gray-500'>
                   <svg
@@ -123,10 +127,7 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
                       d='M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'
                     />
                   </svg>
-                  <span className='font-mono text-xs'>
-                    {data.walletAddress.slice(0, 4)}...
-                    {data.walletAddress.slice(-3)}
-                  </span>
+                  <span className='font-mono text-xs'>💳 Wallet</span>
                 </div>
               )}
               {data.apiKey && (

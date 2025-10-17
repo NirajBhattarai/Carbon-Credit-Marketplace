@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { verifyJWT, verifyApiKeyJWT, extractTokenFromHeader } from './jwt';
 import { db } from '@/lib/db';
-import { users, apiKeys, applications } from '@/lib/db/schema';
+import { users, applications } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export interface AuthenticatedRequest extends NextRequest {
@@ -59,7 +59,7 @@ export async function authenticateJWT(
   let user = await db
     .select()
     .from(users)
-    .where(eq(users.id, payload.userId))
+    .where(eq(users.walletAddress, payload.walletAddress))
     .limit(1);
 
   if (user.length === 0) {
@@ -68,7 +68,6 @@ export async function authenticateJWT(
       const newUser = await db
         .insert(users)
         .values({
-          id: payload.userId,
           walletAddress: payload.walletAddress,
           username: `user_${payload.walletAddress.slice(0, 8)}`,
           role: (payload.role as 'USER' | 'DEVELOPER' | 'ADMIN') || 'USER',
@@ -119,45 +118,30 @@ export async function authenticateApiKey(
     );
   }
 
-  // Verify API key exists and is active
-  const apiKey = await db
+  // Verify application exists and is active
+  const application = await db
     .select({
-      id: apiKeys.id,
-      status: apiKeys.status,
-      expiresAt: apiKeys.expiresAt,
-      application: {
-        id: applications.id,
-        userId: applications.userId,
-        name: applications.name,
-        status: applications.status,
-      },
+      id: applications.id,
+      walletAddress: applications.walletAddress,
+      name: applications.name,
+      status: applications.status,
+      apiKey: applications.apiKey,
     })
-    .from(apiKeys)
-    .innerJoin(applications, eq(apiKeys.applicationId, applications.id))
-    .where(eq(apiKeys.id, payload.applicationId))
+    .from(applications)
+    .where(eq(applications.id, payload.applicationId))
     .limit(1);
 
-  if (apiKey.length === 0) {
-    return NextResponse.json({ error: 'API key not found' }, { status: 401 });
-  }
-
-  const key = apiKey[0];
-
-  // Check if API key is active
-  if (key.status !== 'ACTIVE') {
+  if (application.length === 0) {
     return NextResponse.json(
-      { error: 'API key is not active' },
+      { error: 'Application not found' },
       { status: 401 }
     );
   }
 
-  // Check if API key is expired
-  if (key.expiresAt && new Date() > key.expiresAt) {
-    return NextResponse.json({ error: 'API key has expired' }, { status: 401 });
-  }
+  const app = application[0];
 
   // Check if application is active
-  if (key.application.status !== 'ACTIVE') {
+  if (app.status !== 'ACTIVE') {
     return NextResponse.json(
       { error: 'Application is not active' },
       { status: 401 }
@@ -166,9 +150,9 @@ export async function authenticateApiKey(
 
   // Add application info to request
   (request as AuthenticatedRequest).application = {
-    id: key.application.id,
-    userId: key.application.userId,
-    name: key.application.name,
+    id: app.id,
+    userId: app.walletAddress,
+    name: app.name,
   };
 
   return null;
@@ -271,24 +255,26 @@ export async function authenticateJWTPages(
   );
 
   // Verify user exists in database, create if not found
-  console.log(`[Auth Middleware] Looking up user in database:`, payload.userId);
+  console.log(
+    `[Auth Middleware] Looking up user in database:`,
+    payload.walletAddress
+  );
   let user = await db
     .select()
     .from(users)
-    .where(eq(users.id, payload.userId))
+    .where(eq(users.walletAddress, payload.walletAddress))
     .limit(1);
 
   if (user.length === 0) {
     console.log(
       `[Auth Middleware] User not found, creating new user:`,
-      payload.userId
+      payload.walletAddress
     );
     // Create user if they don't exist
     try {
       const newUser = await db
         .insert(users)
         .values({
-          id: payload.userId,
           walletAddress: payload.walletAddress,
           username: `user_${payload.walletAddress.slice(0, 8)}`,
           role: (payload.role as 'USER' | 'DEVELOPER' | 'ADMIN') || 'USER',
@@ -300,7 +286,7 @@ export async function authenticateJWTPages(
 
       console.log(
         `[Auth Middleware] User created successfully:`,
-        newUser[0].id
+        newUser[0].walletAddress
       );
       user = newUser;
     } catch (error) {
@@ -316,7 +302,10 @@ export async function authenticateJWTPages(
       };
     }
   } else {
-    console.log(`[Auth Middleware] User found in database:`, user[0].id);
+    console.log(
+      `[Auth Middleware] User found in database:`,
+      user[0].walletAddress
+    );
   }
 
   // Add user info to request
@@ -368,63 +357,37 @@ export async function authenticateApiKeyPages(
     payload.applicationId
   );
 
-  // Verify API key exists and is active
+  // Verify application exists and is active
   console.log(
-    `[API Key Auth] Looking up API key in database:`,
+    `[API Key Auth] Looking up application in database:`,
     payload.applicationId
   );
-  const apiKey = await db
+  const application = await db
     .select({
-      id: apiKeys.id,
-      status: apiKeys.status,
-      expiresAt: apiKeys.expiresAt,
-      application: {
-        id: applications.id,
-        userId: applications.userId,
-        name: applications.name,
-        status: applications.status,
-      },
+      id: applications.id,
+      walletAddress: applications.walletAddress,
+      name: applications.name,
+      status: applications.status,
+      apiKey: applications.apiKey,
     })
-    .from(apiKeys)
-    .innerJoin(applications, eq(apiKeys.applicationId, applications.id))
-    .where(eq(apiKeys.id, payload.applicationId))
+    .from(applications)
+    .where(eq(applications.id, payload.applicationId))
     .limit(1);
 
-  if (apiKey.length === 0) {
-    console.log(`[API Key Auth] API key not found in database`);
+  if (application.length === 0) {
+    console.log(`[API Key Auth] Application not found in database`);
     return {
       status: 401,
-      data: { error: 'API key not found' },
+      data: { error: 'Application not found' },
     };
   }
 
-  const key = apiKey[0];
-  console.log(`[API Key Auth] API key found:`, key.id);
-
-  // Check if API key is active
-  if (key.status !== 'ACTIVE') {
-    console.log(`[API Key Auth] API key is not active:`, key.status);
-    return {
-      status: 401,
-      data: { error: 'API key is not active' },
-    };
-  }
-
-  // Check if API key is expired
-  if (key.expiresAt && new Date() > key.expiresAt) {
-    console.log(`[API Key Auth] API key has expired:`, key.expiresAt);
-    return {
-      status: 401,
-      data: { error: 'API key has expired' },
-    };
-  }
+  const app = application[0];
+  console.log(`[API Key Auth] Application found:`, app.id);
 
   // Check if application is active
-  if (key.application.status !== 'ACTIVE') {
-    console.log(
-      `[API Key Auth] Application is not active:`,
-      key.application.status
-    );
+  if (app.status !== 'ACTIVE') {
+    console.log(`[API Key Auth] Application is not active:`, app.status);
     return {
       status: 401,
       data: { error: 'Application is not active' },
@@ -432,15 +395,15 @@ export async function authenticateApiKeyPages(
   }
 
   console.log(
-    `[API Key Auth] API key authentication successful for application:`,
-    key.application.name
+    `[API Key Auth] Application authentication successful for application:`,
+    app.name
   );
 
   // Add application info to request
   (request as AuthenticatedApiRequest).application = {
-    id: key.application.id,
-    userId: key.application.userId,
-    name: key.application.name,
+    id: app.id,
+    userId: app.walletAddress,
+    name: app.name,
   };
 
   return null;

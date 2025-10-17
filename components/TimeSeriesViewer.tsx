@@ -295,11 +295,12 @@ export function TimeSeriesViewer({ className }: TimeSeriesViewerProps) {
                       </Badge>
                       <div>
                         <h4 className='font-semibold text-gray-900'>
-                          {device.deviceId}
+                          {device.walletAddress
+                            ? `${device.walletAddress.slice(0, 4)}...${device.walletAddress.slice(-3)}`
+                            : device.deviceId}
                         </h4>
                         <p className='text-sm text-gray-600'>
-                          💳 {device.walletAddress.slice(0, 6)}...
-                          {device.walletAddress.slice(-4)}
+                          💳 Wallet Address
                         </p>
                       </div>
                     </div>

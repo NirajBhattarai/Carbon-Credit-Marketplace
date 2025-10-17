@@ -1,31 +1,20 @@
-CREATE TYPE "public"."api_key_status" AS ENUM('ACTIVE', 'INACTIVE', 'REVOKED');--> statement-breakpoint
 CREATE TYPE "public"."application_status" AS ENUM('ACTIVE', 'INACTIVE', 'SUSPENDED');--> statement-breakpoint
 CREATE TYPE "public"."device_type" AS ENUM('SEQUESTER', 'EMITTER');--> statement-breakpoint
 CREATE TYPE "public"."transaction_status" AS ENUM('PENDING', 'CONFIRMED', 'FAILED');--> statement-breakpoint
 CREATE TYPE "public"."transaction_type" AS ENUM('MINT', 'BURN');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('USER', 'DEVELOPER', 'ADMIN');--> statement-breakpoint
-CREATE TABLE "api_keys" (
-	"id" text PRIMARY KEY NOT NULL,
-	"application_id" text NOT NULL,
-	"key_hash" text NOT NULL,
-	"status" "api_key_status" DEFAULT 'ACTIVE' NOT NULL,
-	"expires_at" timestamp,
-	"last_used_at" timestamp,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "api_keys_key_hash_unique" UNIQUE("key_hash")
-);
---> statement-breakpoint
 CREATE TABLE "applications" (
 	"id" text PRIMARY KEY NOT NULL,
-	"user_id" text NOT NULL,
+	"wallet_address" text NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
 	"website" text,
 	"status" "application_status" DEFAULT 'ACTIVE' NOT NULL,
+	"api_key" text,
 	"metadata" json,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "applications_api_key_unique" UNIQUE("api_key")
 );
 --> statement-breakpoint
 CREATE TABLE "carbon_credit_transactions" (
@@ -57,7 +46,7 @@ CREATE TABLE "device_data" (
 CREATE TABLE "iot_devices" (
 	"id" text PRIMARY KEY NOT NULL,
 	"device_id" text NOT NULL,
-	"application_id" text NOT NULL,
+	"wallet_address" text NOT NULL,
 	"device_type" "device_type" NOT NULL,
 	"location" text NOT NULL,
 	"project_name" text NOT NULL,
@@ -72,7 +61,7 @@ CREATE TABLE "iot_devices" (
 --> statement-breakpoint
 CREATE TABLE "user_carbon_credits" (
 	"id" text PRIMARY KEY NOT NULL,
-	"user_id" text NOT NULL,
+	"wallet_address" text NOT NULL,
 	"credits" numeric(18, 8) DEFAULT '0' NOT NULL,
 	"co2_reduced" numeric(10, 2) DEFAULT '0' NOT NULL,
 	"energy_saved" numeric(10, 2) DEFAULT '0' NOT NULL,
@@ -86,7 +75,7 @@ CREATE TABLE "user_carbon_credits" (
 --> statement-breakpoint
 CREATE TABLE "user_credit_history" (
 	"id" text PRIMARY KEY NOT NULL,
-	"user_id" text NOT NULL,
+	"wallet_address" text NOT NULL,
 	"credits_earned" numeric(18, 8) NOT NULL,
 	"co2_reduced" numeric(10, 2) NOT NULL,
 	"energy_saved" numeric(10, 2) NOT NULL,
@@ -99,8 +88,7 @@ CREATE TABLE "user_credit_history" (
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
-	"id" text PRIMARY KEY NOT NULL,
-	"wallet_address" text NOT NULL,
+	"wallet_address" text PRIMARY KEY NOT NULL,
 	"username" text,
 	"email" text,
 	"role" "user_role" DEFAULT 'USER' NOT NULL,
@@ -108,7 +96,6 @@ CREATE TABLE "users" (
 	"profile_data" json,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "users_wallet_address_unique" UNIQUE("wallet_address"),
 	CONSTRAINT "users_username_unique" UNIQUE("username"),
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );

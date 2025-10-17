@@ -78,12 +78,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_WALLET_CONNECTED', payload: isConnected });
   }, [isConnected]);
 
-  // Check for existing auth token
+  // Check for existing auth token and fetch user data
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
     if (token) {
       dispatch({ type: 'SET_AUTH_TOKEN', payload: token });
       dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+
+      // Fetch user data using the token
+      fetch('/api/auth/me', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.user) {
+            dispatch({ type: 'SET_USER', payload: data.user });
+            dispatch({ type: 'SET_WALLET_CONNECTED', payload: true });
+            console.log('✅ User data restored from token:', data.user);
+          } else {
+            // Token is invalid, clear it
+            localStorage.removeItem('auth_token');
+            dispatch({ type: 'SET_AUTH_TOKEN', payload: null });
+            dispatch({ type: 'SET_AUTHENTICATED', payload: false });
+          }
+        })
+        .catch(error => {
+          console.error('Failed to restore user data:', error);
+          localStorage.removeItem('auth_token');
+          dispatch({ type: 'SET_AUTH_TOKEN', payload: null });
+          dispatch({ type: 'SET_AUTHENTICATED', payload: false });
+        });
     }
   }, []);
 
@@ -112,46 +138,67 @@ export function useUser() {
   };
 
   const connectWallet = async () => {
+    // This function is now handled by the EnhancedConnectButton
+    // which uses the real wallet connection via Wagmi
+    console.log('connectWallet called - use EnhancedConnectButton instead');
+  };
+
+  const loginWithWallet = async (
+    walletAddress: string,
+    signature: string,
+    message: string
+  ) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       dispatch({ type: 'SET_ERROR', payload: null });
 
-      // Simulate wallet connection
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const mockUser: User = {
-        id: '1',
-        walletAddress: '0x1234...5678',
-        username: 'CarbonTrader',
-        role: 'USER',
-        isVerified: true,
-        createdAt: '2024-01-01T00:00:00Z',
-        // Legacy fields for backward compatibility
-        address: '0x1234...5678',
-        name: 'CarbonTrader',
-        avatar:
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
-        bio: 'Passionate about carbon credits and environmental impact',
-        joined: '2024-01-01T00:00:00Z',
-        stats: {
-          itemsOwned: 15,
-          collections: 8,
-          volumeTraded: 45.2,
-          totalCredits: 2500,
-          creditsUsed: 1200,
+      // Call the login API with real wallet data
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      };
+        body: JSON.stringify({
+          walletAddress,
+          signature,
+          message,
+        }),
+      });
 
-      setUser(mockUser);
-      dispatch({ type: 'SET_WALLET_CONNECTED', payload: true });
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.token) {
+        // Store the JWT token
+        localStorage.setItem('auth_token', data.token);
+        dispatch({ type: 'SET_AUTH_TOKEN', payload: data.token });
+        dispatch({ type: 'SET_AUTHENTICATED', payload: true });
+
+        // Set user data
+        setUser(data.user);
+        dispatch({ type: 'SET_WALLET_CONNECTED', payload: true });
+
+        console.log('✅ Authentication successful:', data.user);
+        return { success: true, user: data.user };
+      } else {
+        throw new Error('Invalid login response');
+      }
     } catch (error) {
+      console.error('Authentication error:', error);
       dispatch({
         type: 'SET_ERROR',
         payload: {
-          message: 'Failed to connect wallet',
-          code: 'WALLET_CONNECTION_ERROR',
+          message: 'Failed to authenticate',
+          code: 'AUTHENTICATION_ERROR',
         },
       });
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
@@ -173,6 +220,7 @@ export function useUser() {
     isLoading: state.isLoading,
     error: state.error,
     connectWallet,
+    loginWithWallet,
     disconnectWallet,
     setUser,
   };

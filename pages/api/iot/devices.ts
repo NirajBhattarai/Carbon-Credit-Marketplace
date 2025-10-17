@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { db, iotDevices, eq, desc } from '@/lib/db';
-import { authenticateApiKey } from '@/lib/auth/middleware';
+import { db, iotDevices, eq, desc, and } from '@/lib/db';
+import { authenticateApiKeyPages } from '@/lib/auth/middleware';
 import { RedisService } from '../../../lib/redis';
 
 interface DeviceRegistrationPayload {
@@ -19,9 +19,9 @@ export default async function handler(
 
   try {
     // Authenticate API key for all requests
-    const authError = await authenticateApiKey(req as any);
+    const authError = await authenticateApiKeyPages(req);
     if (authError) {
-      return res.status(authError.status).json(authError.body);
+      return res.status(authError.status).json(authError.data);
     }
 
     switch (method) {
@@ -51,8 +51,17 @@ export default async function handler(
 async function registerDevice(req: NextApiRequest, res: NextApiResponse) {
   const data: DeviceRegistrationPayload = req.body;
   const application = (req as any).application;
+  const walletAddress = application?.userId; // Get wallet address from authenticated application
 
   try {
+    // Validate wallet address from authenticated application
+    if (!walletAddress) {
+      return res.status(400).json({
+        success: false,
+        message: 'Wallet address not found in authenticated application',
+      });
+    }
+
     // Validate required fields
     if (
       !data.deviceId ||
@@ -101,7 +110,7 @@ async function registerDevice(req: NextApiRequest, res: NextApiResponse) {
       .insert(iotDevices)
       .values({
         deviceId: data.deviceId,
-        applicationId: application.id,
+        walletAddress: walletAddress,
         deviceType: data.deviceType,
         location: data.location,
         projectName: data.projectName,
@@ -111,8 +120,7 @@ async function registerDevice(req: NextApiRequest, res: NextApiResponse) {
         metadata: {
           registrationSource: 'api',
           registrationTimestamp: new Date().toISOString(),
-          applicationId: application.id,
-          applicationName: application.name,
+          walletAddress: walletAddress,
           deviceCapabilities:
             data.deviceType === 'SEQUESTER'
               ? ['co2_monitoring', 'energy_tracking', 'credit_generation']
@@ -141,10 +149,11 @@ async function getAllDevices(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { deviceType, isActive } = req.query;
     const application = (req as any).application;
+    const walletAddress = application?.userId;
 
     // Create cache key from query parameters
     const cacheKey = JSON.stringify({
-      applicationId: application.id,
+      walletAddress: walletAddress,
       deviceType,
       isActive,
     });
@@ -164,7 +173,7 @@ async function getAllDevices(req: NextApiRequest, res: NextApiResponse) {
     console.log('📱 Cache miss - Querying devices from database...');
 
     // Build where conditions based on query parameters
-    let whereCondition = eq(iotDevices.applicationId, application.id);
+    let whereCondition = eq(iotDevices.walletAddress, walletAddress);
 
     if (deviceType && ['SEQUESTER', 'EMITTER'].includes(deviceType as string)) {
       whereCondition = eq(
@@ -212,6 +221,8 @@ async function getAllDevices(req: NextApiRequest, res: NextApiResponse) {
 async function updateDevice(req: NextApiRequest, res: NextApiResponse) {
   const { deviceId } = req.query;
   const updateData = req.body;
+  const application = (req as any).application;
+  const walletAddress = application?.userId;
 
   try {
     if (!deviceId) {
@@ -221,9 +232,12 @@ async function updateDevice(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    // Check if device exists
+    // Check if device exists and belongs to user
     const existingDevice = await db.query.iotDevices.findFirst({
-      where: eq(iotDevices.deviceId, deviceId as string),
+      where: and(
+        eq(iotDevices.deviceId, deviceId as string),
+        eq(iotDevices.walletAddress, walletAddress)
+      ),
     });
 
     if (!existingDevice) {
@@ -261,7 +275,12 @@ async function updateDevice(req: NextApiRequest, res: NextApiResponse) {
     const updatedDevice = await db
       .update(iotDevices)
       .set(updateFields)
-      .where(eq(iotDevices.deviceId, deviceId as string))
+      .where(
+        and(
+          eq(iotDevices.deviceId, deviceId as string),
+          eq(iotDevices.walletAddress, walletAddress)
+        )
+      )
       .returning();
 
     res.status(200).json({
@@ -282,6 +301,8 @@ async function updateDevice(req: NextApiRequest, res: NextApiResponse) {
 // Delete device
 async function deleteDevice(req: NextApiRequest, res: NextApiResponse) {
   const { deviceId } = req.query;
+  const application = (req as any).application;
+  const walletAddress = application?.userId;
 
   try {
     if (!deviceId) {
@@ -291,9 +312,12 @@ async function deleteDevice(req: NextApiRequest, res: NextApiResponse) {
       });
     }
 
-    // Check if device exists
+    // Check if device exists and belongs to user
     const existingDevice = await db.query.iotDevices.findFirst({
-      where: eq(iotDevices.deviceId, deviceId as string),
+      where: and(
+        eq(iotDevices.deviceId, deviceId as string),
+        eq(iotDevices.walletAddress, walletAddress)
+      ),
     });
 
     if (!existingDevice) {
@@ -310,7 +334,12 @@ async function deleteDevice(req: NextApiRequest, res: NextApiResponse) {
         isActive: false,
         updatedAt: new Date(),
       })
-      .where(eq(iotDevices.deviceId, deviceId as string));
+      .where(
+        and(
+          eq(iotDevices.deviceId, deviceId as string),
+          eq(iotDevices.walletAddress, walletAddress)
+        )
+      );
 
     res.status(200).json({
       success: true,

@@ -69,7 +69,10 @@ export function IoTDeviceDashboard({ className }: IoTDeviceDashboardProps) {
     sequesterDevices.forEach((data, deviceId) => {
       const deviceHistoricalData =
         historicalData?.filter(
-          point => point.device_id === deviceId || point.api_key === data.apiKey
+          point =>
+            point.device_id === deviceId ||
+            point.mac === data.mac ||
+            point.api_key === data.apiKey
         ) || [];
 
       const metrics = calculateDeviceMetrics(data, deviceHistoricalData);
@@ -90,7 +93,10 @@ export function IoTDeviceDashboard({ className }: IoTDeviceDashboardProps) {
     emitterDevices.forEach((data, deviceId) => {
       const deviceHistoricalData =
         historicalData?.filter(
-          point => point.device_id === deviceId || point.api_key === data.apiKey
+          point =>
+            point.device_id === deviceId ||
+            point.mac === data.mac ||
+            point.api_key === data.apiKey
         ) || [];
 
       const metrics = calculateDeviceMetrics(data, deviceHistoricalData);
@@ -286,6 +292,12 @@ export function IoTDeviceDashboard({ className }: IoTDeviceDashboardProps) {
       (currentData as any).emissions || currentData.e
     );
 
+    // Use wallet address as primary identifier, fallback to deviceId
+    const displayId = currentData.walletAddress || deviceId;
+    const displayName = currentData.walletAddress
+      ? `${currentData.walletAddress.slice(0, 4)}...${currentData.walletAddress.slice(-3)}`
+      : deviceId;
+
     return (
       <Card
         key={deviceId}
@@ -304,17 +316,14 @@ export function IoTDeviceDashboard({ className }: IoTDeviceDashboardProps) {
             </div>
             <div>
               <h3 className='font-semibold text-gray-900 text-lg'>
-                {deviceId}
+                {displayName}
               </h3>
               <div className='flex items-center space-x-2 text-sm text-gray-600'>
                 <Badge className={getDeviceTypeColor(deviceType)}>
                   {deviceType === 'SEQUESTER' ? '🌱 Creator' : '🔥 Burner'}
                 </Badge>
                 {currentData.walletAddress && (
-                  <span className='font-mono text-xs'>
-                    💳 {currentData.walletAddress.slice(0, 4)}...
-                    {currentData.walletAddress.slice(-3)}
-                  </span>
+                  <span className='font-mono text-xs'>💳 Wallet</span>
                 )}
               </div>
             </div>
@@ -604,7 +613,9 @@ export function IoTDeviceDashboard({ className }: IoTDeviceDashboardProps) {
               </div>
               <div>
                 <h2 className='text-xl font-bold text-gray-900'>
-                  {selectedDevice}
+                  {currentData.walletAddress
+                    ? `${currentData.walletAddress.slice(0, 4)}...${currentData.walletAddress.slice(-3)}`
+                    : selectedDevice}
                 </h2>
                 <div className='flex items-center space-x-2'>
                   <Badge className={getDeviceTypeColor(deviceType)}>
@@ -614,8 +625,7 @@ export function IoTDeviceDashboard({ className }: IoTDeviceDashboardProps) {
                   </Badge>
                   {currentData.walletAddress && (
                     <Badge className='bg-blue-100 text-blue-800'>
-                      💳 {currentData.walletAddress.slice(0, 6)}...
-                      {currentData.walletAddress.slice(-4)}
+                      💳 Wallet Address
                     </Badge>
                   )}
                 </div>
@@ -835,7 +845,11 @@ export function IoTDeviceDashboard({ className }: IoTDeviceDashboardProps) {
                       ? '🌱 Creator'
                       : '🔥 Burner'}
                   </Badge>
-                  <span className='font-medium'>{deviceId}</span>
+                  <span className='font-medium'>
+                    {metrics.walletAddress
+                      ? `${metrics.walletAddress.slice(0, 4)}...${metrics.walletAddress.slice(-3)}`
+                      : deviceId}
+                  </span>
                 </div>
                 <span className='text-sm text-gray-500'>
                   {metrics.metrics.dataPoints} data points

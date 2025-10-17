@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useState,
   useCallback,
+  useRef,
 } from 'react';
 import mqtt, { MqttClient } from 'mqtt';
 import {
@@ -36,6 +37,8 @@ const TOPICS = {
   EMITTER_DATA: 'carbon_emitter/+/sensor_data',
   SEQUESTER_DATA: 'carbon_sequester/+/sensor_data',
   COMMANDS: 'carbon_emitter/commands',
+  // New pattern for API key based topics
+  API_KEY_TOPICS: 'carbon_credit/+/#', // Subscribe to all topics under carbon_credit/{apiKey}/#
 };
 
 // Data interfaces
@@ -45,6 +48,7 @@ export interface SensorData {
   ip?: string;
   location?: string;
   type?: string;
+  device_type?: 'SEQUESTER' | 'EMITTER';
   version?: string;
   // New format with avg/max/min values
   avg_c?: number; // Average CO2 reading
@@ -149,23 +153,54 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
     initInfluxDB();
   }, []);
 
-  // Extract API key from topic (assuming topic format: carbon_credit/{apiKey}/sensor_data)
+  // Extract API key from topic (handles both old and new formats)
   const extractApiKeyFromTopic = useCallback((topic: string): string | null => {
     try {
-      // Handle different topic formats:
-      // carbon_credit/{apiKey}/sensor_data
-      // carbon_emitter/{apiKey}/sensor_data
-      // carbon_sequester/{apiKey}/sensor_data
-      const parts = topic.split('/');
+      console.log('🔍 Extracting API key from topic:', topic);
 
-      if (parts.length >= 2) {
-        const apiKey = parts[1];
-        // Check if it looks like an API key (starts with cc_)
-        if (apiKey && apiKey.startsWith('cc_')) {
-          return apiKey;
+      // New format: carbon_credit/{apiKey}/sensor_data or carbon_credit/{apiKey}/#
+      if (topic.startsWith('carbon_credit/')) {
+        const parts = topic.split('/');
+        console.log('📝 Topic parts:', parts);
+
+        if (parts.length >= 2) {
+          const apiKey = parts[1];
+          console.log('🔑 Potential API key from path:', apiKey);
+
+          // Check if it looks like an API key (starts with cc_)
+          if (apiKey && apiKey.startsWith('cc_')) {
+            console.log('✅ Valid API key found in path:', apiKey);
+            return apiKey;
+          } else {
+            console.log('❌ API key does not start with cc_:', apiKey);
+          }
         }
       }
 
+      // Legacy format: topic is directly the API key (e.g., cc_c98d3c07dfad46e3259a2ad23724cd37b23acfb0195ba6ac10cfb71c3afd753f)
+      if (topic.startsWith('cc_')) {
+        console.log('✅ API key found as direct topic:', topic);
+        return topic;
+      }
+
+      // Legacy format: carbon_emitter/{apiKey}/sensor_data or carbon_sequester/{apiKey}/sensor_data
+      const parts = topic.split('/');
+      console.log('📝 Topic parts:', parts);
+
+      if (parts.length >= 2) {
+        const apiKey = parts[1];
+        console.log('🔑 Potential API key from path:', apiKey);
+
+        // Check if it looks like an API key (starts with cc_)
+        if (apiKey && apiKey.startsWith('cc_')) {
+          console.log('✅ Valid API key found in path:', apiKey);
+          return apiKey;
+        } else {
+          console.log('❌ API key does not start with cc_:', apiKey);
+        }
+      }
+
+      console.log('❌ No valid API key found in topic');
       return null;
     } catch (error) {
       console.error('Error extracting API key from topic:', error);
@@ -177,27 +212,113 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
   const fetchWalletAddressByApiKey = useCallback(
     async (apiKey: string): Promise<string | null> => {
       try {
+        console.log('🔍 Fetching wallet address for API key:', apiKey);
+
         const response = await fetch(
           `/api/mqtt/wallet-address?apiKey=${encodeURIComponent(apiKey)}`
         );
 
+        console.log('📡 API response status:', response.status);
+
         if (!response.ok) {
           console.error(
-            `Failed to fetch wallet address for API key: ${apiKey}`
+            `❌ Failed to fetch wallet address for API key: ${apiKey}, status: ${response.status}`
           );
           return null;
         }
 
         const data = await response.json();
+        console.log('📊 API response data:', data);
 
         if (data.success && data.data?.walletAddress) {
+          console.log('✅ Wallet address found:', data.data.walletAddress);
           return data.data.walletAddress;
         }
 
+        console.log('❌ No wallet address found in response');
         return null;
       } catch (error) {
-        console.error('Error fetching wallet address:', error);
+        console.error('❌ Error fetching wallet address:', error);
         return null;
+      }
+    },
+    []
+  );
+
+  // Track which API keys we've already attempted to create devices for
+  const attemptedDeviceCreation = useRef<Set<string>>(new Set());
+
+  // Auto-create IoT device when MQTT data is received
+  const autoCreateIoTDevice = useCallback(
+    async (
+      deviceData: SensorData,
+      walletAddress: string,
+      apiKey: string
+    ): Promise<void> => {
+      try {
+        // Check if we've already attempted to create a device for this API key
+        if (attemptedDeviceCreation.current.has(apiKey)) {
+          console.log(
+            'ℹ️ Device creation already attempted for API key:',
+            apiKey
+          );
+          return;
+        }
+
+        console.log('🔧 Auto-creating IoT device for wallet:', walletAddress);
+
+        // Mark this API key as attempted
+        attemptedDeviceCreation.current.add(apiKey);
+
+        // Use MAC address as device ID, fallback to device_id, then generate unique ID
+        const deviceId =
+          deviceData.mac ||
+          deviceData.device_id ||
+          `${apiKey}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+        console.log(
+          `🔧 Using device ID: ${deviceId} (MAC: ${deviceData.mac}, device_id: ${deviceData.device_id})`
+        );
+
+        const devicePayload = {
+          deviceId: deviceId,
+          deviceType:
+            deviceData.device_type ||
+            (deviceData.type === 'emitter' ? 'EMITTER' : 'SEQUESTER'),
+          location: deviceData.location || 'Unknown Location',
+          projectName: `Auto-created Device ${new Date().toISOString().split('T')[0]}`,
+          description: `Device auto-created from MQTT data on ${new Date().toISOString()}`,
+        };
+
+        const response = await fetch('/api/iot/auto-create-device', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...devicePayload,
+            apiKey: apiKey,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log(
+            '✅ IoT device auto-created successfully:',
+            result.device?.id
+          );
+        } else {
+          console.log(
+            'ℹ️ Device might already exist or creation failed:',
+            response.status
+          );
+          // Remove from attempted set if creation failed, so we can retry later
+          attemptedDeviceCreation.current.delete(apiKey);
+        }
+      } catch (error) {
+        console.error('❌ Error auto-creating IoT device:', error);
+        // Remove from attempted set if creation failed, so we can retry later
+        attemptedDeviceCreation.current.delete(apiKey);
       }
     },
     []
@@ -217,14 +338,37 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
         let walletAddress: string | null = null;
         if (apiKey) {
           walletAddress = await fetchWalletAddressByApiKey(apiKey);
+
+          // Auto-create IoT device if wallet address is found
+          if (walletAddress) {
+            await autoCreateIoTDevice(data, walletAddress, apiKey);
+          }
         }
 
-        // Determine device type based on topic
+        // Determine device type based on topic or payload
         let deviceType: 'SEQUESTER' | 'EMITTER' = 'SEQUESTER';
-        if (topic.includes('carbon_emitter')) {
-          deviceType = 'EMITTER';
-        } else if (topic.includes('carbon_sequester')) {
-          deviceType = 'SEQUESTER';
+
+        // For new format (API key as topic), determine type from payload or default to SEQUESTER
+        if (topic.startsWith('cc_')) {
+          // Check payload for device type hints
+          if (data.type === 'emitter' || data.device_type === 'EMITTER') {
+            deviceType = 'EMITTER';
+          } else if (
+            data.type === 'sequester' ||
+            data.device_type === 'SEQUESTER'
+          ) {
+            deviceType = 'SEQUESTER';
+          } else {
+            // Default to SEQUESTER for new format
+            deviceType = 'SEQUESTER';
+          }
+        } else {
+          // Old format: determine from topic path
+          if (topic.includes('carbon_emitter')) {
+            deviceType = 'EMITTER';
+          } else if (topic.includes('carbon_sequester')) {
+            deviceType = 'SEQUESTER';
+          }
         }
 
         // Add wallet address and API key to sensor data
@@ -245,7 +389,7 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
     },
-    [extractApiKeyFromTopic, fetchWalletAddressByApiKey]
+    [extractApiKeyFromTopic, fetchWalletAddressByApiKey, autoCreateIoTDevice]
   );
 
   // Handle incoming messages
@@ -263,7 +407,10 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
       // Route message to appropriate InfluxDB function based on message type
       try {
         const deviceId =
-          message.payload.device_id || topic.split('/')[1] || 'unknown';
+          message.payload.mac ||
+          message.payload.device_id ||
+          topic.split('/')[1] ||
+          'unknown';
         const deviceType = message.deviceType;
         const apiKey = message.payload.apiKey;
         const walletAddress = message.payload.walletAddress;
@@ -427,11 +574,11 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Update device data maps
-      // Use wallet address as device ID if available, otherwise fallback to API key or device_id
+      // Use MAC address as device ID if available, otherwise fallback to device_id, API key, or topic
       const deviceId =
-        message.payload.walletAddress ||
-        message.payload.apiKey ||
+        message.payload.mac ||
         message.payload.device_id ||
+        message.payload.apiKey ||
         topic.split('/')[1] ||
         'unknown';
 
@@ -616,9 +763,18 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
   // Auto-subscribe to main topics when connected
   useEffect(() => {
     if (client?.connected) {
-      // Subscribe to carbon emitter and sequester topics
+      // Subscribe to carbon emitter and sequester topics (old format)
       subscribe(TOPICS.CARBON_EMITTER);
       subscribe(TOPICS.CARBON_SEQUESTER);
+
+      // Subscribe to API key based topics (new format)
+      subscribe(TOPICS.API_KEY_TOPICS);
+
+      console.log('📡 Subscribed to MQTT topics:', {
+        carbonEmitter: TOPICS.CARBON_EMITTER,
+        carbonSequester: TOPICS.CARBON_SEQUESTER,
+        apiKeyTopics: TOPICS.API_KEY_TOPICS,
+      });
     }
   }, [client?.connected, subscribe]);
 

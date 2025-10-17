@@ -39,14 +39,30 @@ export function DeviceManagementDashboard({
   const fetchDevices = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/iot/devices');
+      const token = localStorage.getItem('auth_token');
+
+      if (!token) {
+        setError('Authentication required. Please login first.');
+        return;
+      }
+
+      const response = await fetch('/api/user/devices', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
       const result = await response.json();
 
       if (result.success) {
         setDevices(result.devices);
         setError(null);
       } else {
-        setError(result.message || 'Failed to fetch devices');
+        if (response.status === 401) {
+          setError('Authentication failed. Please login again.');
+        } else {
+          setError(result.message || 'Failed to fetch devices');
+        }
       }
     } catch (err) {
       console.error('Error fetching devices:', err);

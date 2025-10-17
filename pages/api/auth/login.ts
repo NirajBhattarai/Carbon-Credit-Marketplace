@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { verifyWalletSignature } from '@/lib/auth/jwt';
 
 /**
  * POST /api/auth/login
@@ -20,6 +21,18 @@ export default async function handler(
     if (!walletAddress || !signature || !message) {
       return res.status(400).json({
         error: 'Wallet address, signature, and message are required',
+      });
+    }
+
+    // Verify the wallet signature
+    const isValidSignature = verifyWalletSignature(
+      message,
+      signature,
+      walletAddress
+    );
+    if (!isValidSignature) {
+      return res.status(401).json({
+        error: 'Invalid signature',
       });
     }
 
@@ -51,7 +64,7 @@ export default async function handler(
       await db
         .update(users)
         .set({ updatedAt: new Date() })
-        .where(eq(users.id, user[0].id));
+        .where(eq(users.walletAddress, walletAddress));
     }
 
     const userData = user[0];
@@ -59,7 +72,7 @@ export default async function handler(
     // Generate JWT token
     const { generateJWT } = await import('@/lib/auth/jwt');
     const token = generateJWT({
-      userId: userData.id,
+      userId: userData.walletAddress, // Use walletAddress as userId since it's now the primary key
       walletAddress: userData.walletAddress,
       role: userData.role,
     });
@@ -68,7 +81,7 @@ export default async function handler(
       success: true,
       token,
       user: {
-        id: userData.id,
+        id: userData.walletAddress, // Use walletAddress as id since it's now the primary key
         walletAddress: userData.walletAddress,
         username: userData.username,
         email: userData.email,

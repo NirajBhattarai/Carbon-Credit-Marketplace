@@ -1,13 +1,111 @@
 'use client';
 
-import { useAccount, useDisconnect } from 'wagmi';
+import { useAccount, useDisconnect, useSignMessage } from 'wagmi';
 import { Button } from '@/components/ui/Button';
+import { useUser } from '@/lib/auth/context';
+import { useState, useEffect } from 'react';
 
 /**
  * ConnectButton component using AppKit web component
  * This provides a simple way to integrate wallet connection
  */
 export function ConnectButton() {
+  return <appkit-button />;
+}
+
+/**
+ * EnhancedConnectButton component with JWT authentication
+ * Uses AppKit for wallet connection and handles JWT authentication after connection
+ */
+export function EnhancedConnectButton() {
+  const { address, isConnected } = useAccount();
+  const { disconnect } = useDisconnect();
+  const { signMessageAsync } = useSignMessage();
+  const { loginWithWallet, disconnectWallet, isLoading, user } = useUser();
+  const [isSigning, setIsSigning] = useState(false);
+
+  // Handle JWT authentication when wallet connects
+  useEffect(() => {
+    const handleWalletConnect = async () => {
+      if (isConnected && address && !user && !isSigning) {
+        try {
+          setIsSigning(true);
+
+          // Create a message to sign
+          const message = `Sign this message to authenticate with EcoTrade Carbon Credit Marketplace.\n\nWallet: ${address}\nTimestamp: ${Date.now()}`;
+
+          // Sign the message
+          const signature = await signMessageAsync({ message });
+
+          // Login with wallet signature
+          const result = await loginWithWallet(address, signature, message);
+
+          if (!result.success) {
+            console.error('Login failed:', result.error);
+          }
+        } catch (error) {
+          console.error('Authentication error:', error);
+        } finally {
+          setIsSigning(false);
+        }
+      }
+    };
+
+    // Add a small delay to avoid race conditions
+    const timeoutId = setTimeout(handleWalletConnect, 100);
+    return () => clearTimeout(timeoutId);
+  }, [
+    isConnected,
+    address,
+    user,
+    isSigning,
+    signMessageAsync,
+    loginWithWallet,
+  ]);
+
+  const handleDisconnect = () => {
+    disconnect();
+    disconnectWallet();
+  };
+
+  if (isConnected && user) {
+    return (
+      <div className='flex items-center gap-3'>
+        <div className='text-right'>
+          <p className='text-sm font-medium text-gray-900'>
+            {user.username ||
+              user.name ||
+              `${address?.slice(0, 6)}...${address?.slice(-4)}`}
+          </p>
+          <p className='text-xs text-gray-500'>
+            {user.role === 'DEVELOPER'
+              ? 'Developer'
+              : user.role === 'ADMIN'
+                ? 'Admin'
+                : 'User'}
+          </p>
+        </div>
+        <Button
+          variant='outline'
+          size='sm'
+          onClick={handleDisconnect}
+          className='text-red-600 hover:text-red-700 hover:bg-red-50'
+          disabled={isLoading}
+        >
+          {isLoading ? 'Disconnecting...' : 'Disconnect'}
+        </Button>
+      </div>
+    );
+  }
+
+  if (isConnected && isSigning) {
+    return (
+      <Button disabled className='min-w-[120px]'>
+        Authenticating...
+      </Button>
+    );
+  }
+
   return <appkit-button />;
 }
 
