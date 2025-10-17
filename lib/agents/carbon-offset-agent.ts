@@ -1,51 +1,96 @@
 /**
  * Carbon Offset Agent
- * Buys carbon credits to offset emissions from industrial processes
+ * Purchases carbon credits to offset emissions and manages offset tracking
  */
 
 import {
   BaseAgent,
   AgentConfig,
-  AgentType,
   AgentCapability,
-} from './base-agent';
-import {
   A2AMessage,
   MessageType,
-  CreditRequestMessage,
-  CreditOfferMessage,
-} from './a2a-protocol';
+} from './base-agent';
 
 export interface OffsetAgentConfig extends AgentConfig {
-  emissionSources: string[];
-  offsetTargets: {
-    monthlyTarget: number; // credits needed per month
+  agentType: 'CARBON_OFFSETTER';
+  capabilities: [
+    AgentCapability.PURCHASE_CREDITS,
+    AgentCapability.BUDGET_MANAGEMENT,
+    AgentCapability.OFFSET_TRACKING,
+    AgentCapability.RISK_MANAGEMENT,
+  ];
+  offsetSettings: {
+    organizationName: string;
+    industry: string;
+    monthlyBudget: number; // HBAR per month
+    targetOffsetAmount: number; // credits per month
+    maxPricePerCredit: number; // HBAR per credit
+    preferredCreditTypes: string[];
     urgencyLevel: 'LOW' | 'MEDIUM' | 'HIGH';
   };
-  budget: {
-    monthlyBudget: number; // HBAR per month
-    maxPricePerCredit: number; // HBAR
-  };
-  creditPreferences: {
-    preferredTypes: ('SEQUESTER' | 'EMITTER')[];
-    qualityRequirements: 'HIGH' | 'MEDIUM' | 'LOW';
-  };
+}
+
+export interface OffsetRequirement {
+  id: string;
+  amount: number;
+  deadline: number;
+  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  reason: string;
 }
 
 export class CarbonOffsetAgent extends BaseAgent {
   private config: OffsetAgentConfig;
   private pendingRequests: Map<string, any> = new Map();
-  private emissionTracking: Map<string, number> = new Map();
+  private offsetRequirements: OffsetRequirement[] = [];
+  private monthlySpending: number = 0;
 
   constructor(config: OffsetAgentConfig) {
     super(config);
     this.config = config;
+    this.setupMessageHandlers();
   }
 
-  protected setupMessageHandlers(): void {
+  /**
+   * Initialize the agent
+   */
+  async initialize(): Promise<void> {
+    console.log(`🏢 Initializing Carbon Offset Agent: ${this.config.name}`);
+
+    // Start offset monitoring
+    this.startOffsetMonitoring();
+
+    // Start heartbeat
+    this.startHeartbeat();
+
+    this.isRunning = true;
+    this.updateActivity();
+
+    console.log(`✅ Carbon Offset Agent initialized: ${this.config.name}`);
+  }
+
+  /**
+   * Shutdown the agent
+   */
+  async shutdown(): Promise<void> {
+    console.log(`🛑 ${this.config.name}: Shutting down...`);
+
+    this.isRunning = false;
+    this.state.isOnline = false;
+
+    console.log(`✅ ${this.config.name}: Shutdown complete`);
+  }
+
+  /**
+   * Setup message handlers
+   */
+  private setupMessageHandlers(): void {
     this.messageHandlers.set(
       MessageType.CREDIT_OFFER,
       this.handleCreditOffer.bind(this)
+    );
+    this.messageHandlers.set(
+      MessageType.PRICE_QUOTE,
+      this.handlePriceQuote.bind(this)
     );
     this.messageHandlers.set(
       MessageType.PRICE_NEGOTIATION,
@@ -63,333 +108,338 @@ export class CarbonOffsetAgent extends BaseAgent {
       MessageType.TRANSACTION_REJECT,
       this.handleTransactionReject.bind(this)
     );
-  }
-
-  /**
-   * Initialize the offset agent
-   */
-  async initialize(): Promise<void> {
-    await super.initialize();
-
-    // Start emission monitoring
-    this.startEmissionMonitoring();
-
-    // Start credit purchasing process
-    this.startCreditPurchasing();
-
-    console.log(`Carbon Offset Agent ${this.config.name} initialized`);
-  }
-
-  /**
-   * Start monitoring emissions from sources
-   */
-  private startEmissionMonitoring(): void {
-    setInterval(async () => {
-      try {
-        await this.calculateEmissions();
-      } catch (error) {
-        console.error('Error monitoring emissions:', error);
-      }
-    }, 60000); // Check every minute
-  }
-
-  /**
-   * Calculate current emissions from all sources
-   */
-  private async calculateEmissions(): Promise<void> {
-    for (const source of this.config.emissionSources) {
-      // Simulate emission calculation
-      const emissions = this.simulateEmissions(source);
-      this.emissionTracking.set(source, emissions);
-
-      console.log(`Source ${source} emitting ${emissions} CO2 units`);
-    }
-
-    // Check if we need to purchase credits
-    await this.checkCreditNeeds();
-  }
-
-  /**
-   * Simulate emissions from a source (in real implementation, this would connect to actual sensors)
-   */
-  private simulateEmissions(source: string): number {
-    // Simulate varying emission rates
-    const baseRate = 100; // CO2 units per minute
-    const variation = (Math.random() - 0.5) * 20; // ±10% variation
-    return Math.max(0, baseRate + variation);
-  }
-
-  /**
-   * Check if we need to purchase credits
-   */
-  private async checkCreditNeeds(): Promise<void> {
-    const totalEmissions = Array.from(this.emissionTracking.values()).reduce(
-      (sum, emissions) => sum + emissions,
-      0
+    this.messageHandlers.set(
+      MessageType.HEARTBEAT,
+      this.handleHeartbeat.bind(this)
     );
-    const creditsNeeded = Math.ceil(totalEmissions / 1000); // 1000 CO2 units = 1 credit
+  }
 
-    const currentCredits = this.state.credits;
-    const targetCredits = this.config.offsetTargets.monthlyTarget;
+  /**
+   * Start offset monitoring
+   */
+  private startOffsetMonitoring(): void {
+    setInterval(() => {
+      this.checkOffsetRequirements();
+    }, 10000); // Check every 10 seconds
+  }
 
-    if (currentCredits < targetCredits * 0.8) {
-      // Buy when below 80% of target
-      console.log(
-        `Need to purchase credits. Current: ${currentCredits}, Target: ${targetCredits}`
-      );
-      await this.requestCreditPurchase(creditsNeeded);
+  /**
+   * Check offset requirements and initiate purchases
+   */
+  private checkOffsetRequirements(): void {
+    // Simulate offset requirements
+    if (Math.random() < 0.3) {
+      // 30% chance of new requirement
+      this.createOffsetRequirement();
+    }
+
+    // Process pending requirements
+    for (const requirement of this.offsetRequirements) {
+      if (
+        this.canAffordPurchase(requirement.amount) &&
+        requirement.deadline > Date.now()
+      ) {
+        this.requestCredits(requirement);
+      }
     }
   }
 
   /**
-   * Request credit purchase from available sellers
+   * Create a new offset requirement
    */
-  private async requestCreditPurchase(creditsNeeded: number): Promise<void> {
-    const request: CreditRequestMessage = {
-      creditAmount: creditsNeeded,
-      maxPricePerCredit: this.config.budget.maxPricePerCredit,
-      buyerAgentId: this.config.id,
-      creditType:
-        this.config.creditPreferences.preferredTypes[0] || 'SEQUESTER',
-      urgency: this.config.offsetTargets.urgencyLevel,
-      deadline: Date.now() + 300000, // 5 minutes
+  private createOffsetRequirement(): void {
+    const requirement: OffsetRequirement = {
+      id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      amount: Math.floor(Math.random() * 50) + 10, // 10-60 credits
+      deadline: Date.now() + Math.random() * 3600000 + 1800000, // 30-90 minutes
+      priority: ['LOW', 'MEDIUM', 'HIGH'][Math.floor(Math.random() * 3)] as
+        | 'LOW'
+        | 'MEDIUM'
+        | 'HIGH',
+      reason: 'Monthly carbon offset requirement',
     };
 
+    this.offsetRequirements.push(requirement);
     console.log(
-      `Requesting ${creditsNeeded} credits at max ${this.config.budget.maxPricePerCredit} HBAR each`
+      `📋 ${this.config.name}: Created offset requirement - ${requirement.amount} credits (Priority: ${requirement.priority})`
     );
-
-    // Broadcast the request
-    await this.broadcastMessage(MessageType.CREDIT_REQUEST, request);
-
-    // Store the request for tracking
-    this.pendingRequests.set(request.buyerAgentId, request);
   }
 
   /**
-   * Start credit purchasing process
+   * Check if we can afford a purchase
    */
-  private startCreditPurchasing(): void {
-    setInterval(async () => {
-      try {
-        // Check for expired requests
-        const now = Date.now();
-        for (const [requestId, request] of this.pendingRequests) {
-          if (now > request.deadline) {
-            console.log(`Request ${requestId} expired`);
-            this.pendingRequests.delete(requestId);
-          }
-        }
-      } catch (error) {
-        console.error('Error in credit purchasing process:', error);
-      }
-    }, 30000); // Check every 30 seconds
+  private canAffordPurchase(amount: number): boolean {
+    const estimatedCost = amount * this.config.offsetSettings.maxPricePerCredit;
+    return (
+      this.state.hbarBalance >= estimatedCost &&
+      this.monthlySpending + estimatedCost <=
+        this.config.offsetSettings.monthlyBudget
+    );
   }
 
   /**
-   * Handle credit offer messages
+   * Request credits from available sellers
+   */
+  private async requestCredits(requirement: OffsetRequirement): Promise<void> {
+    const message = {
+      from: this.config.id,
+      to: 'broadcast',
+      type: MessageType.CREDIT_REQUEST,
+      payload: {
+        creditAmount: requirement.amount,
+        maxPricePerCredit: this.config.offsetSettings.maxPricePerCredit,
+        buyerAgentId: this.config.id,
+        buyerName: this.config.name,
+        organizationName: this.config.offsetSettings.organizationName,
+        industry: this.config.offsetSettings.industry,
+        urgency: requirement.priority,
+        deadline: requirement.deadline,
+        preferredCreditTypes: this.config.offsetSettings.preferredCreditTypes,
+      },
+    };
+
+    await this.sendMessage(message);
+    console.log(
+      `📤 ${this.config.name}: Requesting ${requirement.amount} credits for offset requirement ${requirement.id}`
+    );
+  }
+
+  /**
+   * Handle credit offer
    */
   private async handleCreditOffer(message: A2AMessage): Promise<void> {
     const offer = message.payload;
-
-    console.log(`Received credit offer from ${message.from}:`, offer);
-
-    // Check if offer meets our criteria
-    if (!this.isOfferAcceptable(offer)) {
-      console.log(`Offer from ${message.from} does not meet criteria`);
-      return;
-    }
-
-    // Check if we have pending requests
-    const pendingRequest = Array.from(this.pendingRequests.values()).find(
-      req =>
-        req.creditAmount <= offer.creditAmount &&
-        req.maxPricePerCredit >= offer.pricePerCredit
+    console.log(
+      `📨 ${this.config.name}: Received credit offer from ${message.from}`
     );
 
-    if (pendingRequest) {
-      // Accept the offer
-      await this.sendMessage(message.from, MessageType.TRANSACTION_ACCEPT, {
-        creditAmount: Math.min(offer.creditAmount, pendingRequest.creditAmount),
-        pricePerCredit: offer.pricePerCredit,
-        buyerAgentId: this.config.id,
+    // Check if offer meets our criteria
+    if (
+      offer.pricePerCredit <= this.config.offsetSettings.maxPricePerCredit &&
+      offer.creditAmount >= 10 && // Minimum purchase amount
+      this.canAffordPurchase(offer.creditAmount)
+    ) {
+      // Send credit request
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.CREDIT_REQUEST,
+        payload: {
+          creditAmount: Math.min(offer.creditAmount, 50), // Max 50 credits per purchase
+          maxPricePerCredit: this.config.offsetSettings.maxPricePerCredit,
+          buyerAgentId: this.config.id,
+          urgency: this.config.offsetSettings.urgencyLevel,
+          deadline: Date.now() + 300000, // 5 minutes
+        },
       });
+
+      console.log(
+        `✅ ${this.config.name}: Responding to credit offer from ${message.from}`
+      );
     }
   }
 
   /**
-   * Check if an offer meets our criteria
+   * Handle price quote
    */
-  private isOfferAcceptable(offer: CreditOfferMessage): boolean {
-    // Check price
-    if (offer.pricePerCredit > this.config.budget.maxPricePerCredit) {
-      return false;
-    }
+  private async handlePriceQuote(message: A2AMessage): Promise<void> {
+    const quote = message.payload;
+    console.log(
+      `💰 ${this.config.name}: Received price quote from ${message.from}`
+    );
 
-    // Check credit type
-    if (
-      !this.config.creditPreferences.preferredTypes.includes(offer.creditType)
-    ) {
-      return false;
-    }
+    if (quote.pricePerCredit <= this.config.offsetSettings.maxPricePerCredit) {
+      // Accept the quote
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.ORDER_PLACEMENT,
+        payload: {
+          creditAmount: quote.creditAmount,
+          pricePerCredit: quote.pricePerCredit,
+          totalAmount: quote.creditAmount * quote.pricePerCredit,
+          buyerAgentId: this.config.id,
+        },
+      });
 
-    // Check quality
-    if (
-      this.config.creditPreferences.qualityRequirements === 'HIGH' &&
-      offer.metadata.quality !== 'HIGH'
-    ) {
-      return false;
+      console.log(
+        `✅ ${this.config.name}: Placed order for ${quote.creditAmount} credits @ ${quote.pricePerCredit} HBAR`
+      );
     }
-
-    // Check expiration
-    if (offer.expirationTime < Date.now()) {
-      return false;
-    }
-
-    return true;
   }
 
   /**
-   * Handle price negotiation messages
+   * Handle price negotiation
    */
   private async handlePriceNegotiation(message: A2AMessage): Promise<void> {
     const negotiation = message.payload;
-
     console.log(
-      `Received price negotiation from ${message.from}:`,
-      negotiation
+      `💰 ${this.config.name}: Received price negotiation from ${message.from}`
     );
 
-    // Check if the proposed price is acceptable
-    if (negotiation.proposedPrice <= this.config.budget.maxPricePerCredit) {
-      await this.sendMessage(message.from, MessageType.TRANSACTION_ACCEPT, {
-        acceptedPrice: negotiation.proposedPrice,
-        transactionId: negotiation.transactionId,
+    if (
+      negotiation.proposedPrice <= this.config.offsetSettings.maxPricePerCredit
+    ) {
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.PRICE_NEGOTIATION,
+        payload: {
+          proposedPrice: negotiation.proposedPrice,
+          accepted: true,
+          reasoning: 'Price within acceptable range',
+        },
       });
-    } else {
-      // Counter offer
-      const counterOffer = Math.min(
-        this.config.budget.maxPricePerCredit,
-        negotiation.proposedPrice * 0.9 // 10% discount
-      );
 
-      await this.sendMessage(message.from, MessageType.PRICE_NEGOTIATION, {
-        proposedPrice: counterOffer,
-        counterOffer: counterOffer,
-        reasoning: `Our maximum budget is ${this.config.budget.maxPricePerCredit} HBAR per credit`,
-        marketData: negotiation.marketData,
+      console.log(
+        `✅ ${this.config.name}: Accepted negotiated price: ${negotiation.proposedPrice} HBAR`
+      );
+    } else {
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.PRICE_NEGOTIATION,
+        payload: {
+          proposedPrice: this.config.offsetSettings.maxPricePerCredit,
+          accepted: false,
+          reasoning: 'Price exceeds maximum budget',
+        },
       });
+
+      console.log(
+        `❌ ${this.config.name}: Rejected price negotiation - exceeds budget`
+      );
     }
   }
 
   /**
-   * Handle transaction proposal messages
+   * Handle transaction proposal
    */
   private async handleTransactionProposal(message: A2AMessage): Promise<void> {
     const proposal = message.payload;
-
     console.log(
-      `Received transaction proposal from ${message.from}:`,
-      proposal
+      `📋 ${this.config.name}: Received transaction proposal from ${message.from}`
     );
 
-    // Check if we can afford this transaction
+    // Check budget and availability
     if (proposal.totalAmount > this.state.hbarBalance) {
-      await this.sendMessage(message.from, MessageType.TRANSACTION_REJECT, {
-        transactionId: proposal.transactionId,
-        reason: 'Insufficient HBAR balance',
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.TRANSACTION_REJECT,
+        payload: {
+          transactionId: proposal.transactionId,
+          reason: 'Insufficient HBAR balance',
+        },
       });
       return;
     }
 
-    // Execute the transaction
-    const success = await this.executeTransaction(
-      proposal.transactionId,
-      proposal.totalAmount,
-      proposal.sellerAgentId,
-      `Purchase ${proposal.creditAmount} carbon credits`
-    );
-
-    if (success) {
-      // Update credits
-      this.state.credits += proposal.creditAmount;
-
-      await this.sendMessage(message.from, MessageType.TRANSACTION_ACCEPT, {
-        transactionId: proposal.transactionId,
-        confirmation: 'Transaction executed successfully',
+    if (
+      proposal.totalAmount >
+      this.config.offsetSettings.monthlyBudget - this.monthlySpending
+    ) {
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.TRANSACTION_REJECT,
+        payload: {
+          transactionId: proposal.transactionId,
+          reason: 'Exceeds monthly budget',
+        },
       });
-
-      // Remove from pending requests
-      this.pendingRequests.delete(proposal.buyerAgentId);
-    } else {
-      await this.sendMessage(message.from, MessageType.TRANSACTION_REJECT, {
-        transactionId: proposal.transactionId,
-        reason: 'Transaction execution failed',
-      });
+      return;
     }
+
+    // Accept the transaction
+    await this.sendMessage({
+      from: this.config.id,
+      to: message.from,
+      type: MessageType.TRANSACTION_ACCEPT,
+      payload: {
+        transactionId: proposal.transactionId,
+        confirmation: 'Transaction accepted',
+      },
+    });
+
+    console.log(
+      `✅ ${this.config.name}: Accepted transaction ${proposal.transactionId}`
+    );
   }
 
   /**
-   * Handle transaction accept messages
+   * Handle transaction accept
    */
   private async handleTransactionAccept(message: A2AMessage): Promise<void> {
     const accept = message.payload;
-
     console.log(
-      `Transaction ${accept.transactionId} accepted by ${message.from}`
+      `✅ ${this.config.name}: Transaction ${accept.transactionId} accepted by seller`
     );
 
-    // Update our state
-    this.state.performance.successfulTrades++;
+    // Simulate transaction completion
+    this.state.totalTransactions++;
+    this.state.performance.totalCreditsPurchased += accept.creditAmount || 0;
+    this.state.performance.totalExpenses += accept.totalAmount || 0;
+    this.monthlySpending += accept.totalAmount || 0;
+
+    console.log(
+      `🎉 ${this.config.name}: Purchase completed! Total transactions: ${this.state.totalTransactions}`
+    );
   }
 
   /**
-   * Handle transaction reject messages
+   * Handle transaction reject
    */
   private async handleTransactionReject(message: A2AMessage): Promise<void> {
     const reject = message.payload;
-
     console.log(
-      `Transaction ${reject.transactionId} rejected by ${message.from}: ${reject.reason}`
+      `❌ ${this.config.name}: Transaction rejected: ${reject.reason}`
     );
-
-    // Remove from pending requests
-    this.pendingRequests.delete(reject.transactionId);
   }
 
   /**
-   * Get agent statistics
+   * Handle heartbeat
    */
-  getStatistics(): any {
+  private async handleHeartbeat(message: A2AMessage): Promise<void> {
+    console.log(
+      `💓 ${this.config.name}: Received heartbeat from ${message.from}`
+    );
+  }
+
+  /**
+   * Start heartbeat
+   */
+  private startHeartbeat(): void {
+    setInterval(() => {
+      this.sendMessage({
+        from: this.config.id,
+        to: 'broadcast',
+        type: MessageType.HEARTBEAT,
+        payload: {
+          agentId: this.config.id,
+          status: 'online',
+          hbarBalance: this.state.hbarBalance,
+          monthlySpending: this.monthlySpending,
+          lastActivity: this.state.lastActivity,
+        },
+      });
+    }, 30000); // Send heartbeat every 30 seconds
+  }
+
+  /**
+   * Get offset tracking summary
+   */
+  getOffsetSummary(): any {
     return {
-      agentId: this.config.id,
-      credits: this.state.credits,
-      hbarBalance: this.state.hbarBalance,
-      emissionSources: this.config.emissionSources.length,
-      currentEmissions: Array.from(this.emissionTracking.entries()).map(
-        ([source, emissions]) => ({
-          source,
-          emissions,
-        })
-      ),
-      pendingRequests: this.pendingRequests.size,
-      performance: this.state.performance,
-      budget: {
-        monthlyBudget: this.config.budget.monthlyBudget,
-        maxPricePerCredit: this.config.budget.maxPricePerCredit,
-        remainingBudget:
-          this.config.budget.monthlyBudget - this.state.performance.totalVolume,
-      },
+      totalCreditsPurchased: this.state.performance.totalCreditsPurchased,
+      monthlySpending: this.monthlySpending,
+      monthlyBudget: this.config.offsetSettings.monthlyBudget,
+      budgetUtilization:
+        (this.monthlySpending / this.config.offsetSettings.monthlyBudget) * 100,
+      pendingRequirements: this.offsetRequirements.length,
+      averagePricePerCredit:
+        this.state.performance.totalExpenses /
+          this.state.performance.totalCreditsPurchased || 0,
     };
-  }
-
-  /**
-   * Simulate monthly budget refresh
-   */
-  simulateMonthlyBudgetRefresh(): void {
-    this.state.hbarBalance += this.config.budget.monthlyBudget;
-    console.log(
-      `Monthly budget refreshed. New balance: ${this.state.hbarBalance} HBAR`
-    );
   }
 }

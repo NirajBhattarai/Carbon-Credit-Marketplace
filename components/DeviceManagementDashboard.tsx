@@ -75,7 +75,6 @@ export function DeviceManagementDashboard({
     fetchDevices();
   }, []);
 
-
   const filteredDevices = devices.filter(
     device => filter === 'ALL' || device.deviceType === filter
   );

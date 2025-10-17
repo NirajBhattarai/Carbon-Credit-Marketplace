@@ -21,7 +21,13 @@ export function EnhancedConnectButton() {
   const { address, isConnected } = useAccount();
   const { disconnect } = useDisconnect();
   const { signMessageAsync } = useSignMessage();
-  const { loginWithWallet, disconnectWallet, isLoading, user, isAuthenticated } = useUser();
+  const {
+    loginWithWallet,
+    disconnectWallet,
+    isLoading,
+    user,
+    isAuthenticated,
+  } = useUser();
   const [isSigning, setIsSigning] = useState(false);
   const [hasAttemptedAuth, setHasAttemptedAuth] = useState(false);
 
@@ -34,7 +40,13 @@ export function EnhancedConnectButton() {
       // 3. User is not already authenticated
       // 4. We haven't already attempted authentication
       // 5. We're not currently signing
-      if (isConnected && address && !isAuthenticated && !hasAttemptedAuth && !isSigning) {
+      if (
+        isConnected &&
+        address &&
+        !isAuthenticated &&
+        !hasAttemptedAuth &&
+        !isSigning
+      ) {
         try {
           setIsSigning(true);
           setHasAttemptedAuth(true);

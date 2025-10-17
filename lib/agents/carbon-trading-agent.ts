@@ -1,61 +1,133 @@
 /**
- * Carbon Trading Agent (Market Maker)
- * Facilitates marketplace transactions and provides price discovery
+ * Carbon Trading Agent
+ * Facilitates marketplace transactions and price discovery
  */
 
 import {
   BaseAgent,
   AgentConfig,
-  AgentType,
   AgentCapability,
-} from './base-agent';
-import {
   A2AMessage,
   MessageType,
-  CreditOfferMessage,
-  CreditRequestMessage,
-} from './a2a-protocol';
+} from './base-agent';
 
 export interface TradingAgentConfig extends AgentConfig {
-  marketMaking: {
-    spreadPercentage: number; // Buy/sell spread
-    maxInventory: number; // Maximum credits to hold
-    minInventory: number; // Minimum credits to maintain
-  };
-  priceDiscovery: {
-    updateInterval: number; // milliseconds
-    volatilityThreshold: number; // percentage
-  };
-  riskManagement: {
-    maxPositionSize: number; // HBAR
-    stopLossPercentage: number; // percentage
+  agentType: 'CARBON_TRADER';
+  capabilities: [
+    AgentCapability.TRADE_CREDITS,
+    AgentCapability.PRICE_DISCOVERY,
+    AgentCapability.MARKET_MAKING,
+    AgentCapability.RISK_MANAGEMENT,
+  ];
+  tradingSettings: {
+    tradingStrategy: 'MARKET_MAKER' | 'ARBITRAGE' | 'HIGH_FREQUENCY';
+    maxPositionSize: number; // Maximum credits to hold
+    minSpread: number; // Minimum bid-ask spread (HBAR)
+    maxSpread: number; // Maximum bid-ask spread (HBAR)
+    riskTolerance: 'LOW' | 'MEDIUM' | 'HIGH';
+    tradingHours: {
+      start: number; // Hour of day (0-23)
+      end: number; // Hour of day (0-23)
+    };
   };
 }
 
-export interface MarketData {
-  timestamp: number;
+export interface OrderBook {
+  bids: Order[];
+  asks: Order[];
+  lastPrice: number;
+  volume24h: number;
+}
+
+export interface Order {
+  id: string;
+  agentId: string;
+  type: 'BID' | 'ASK';
+  amount: number;
   price: number;
-  volume: number;
-  bid: number;
-  ask: number;
-  spread: number;
+  timestamp: number;
+  status: 'ACTIVE' | 'FILLED' | 'CANCELLED';
+}
+
+export interface MarketData {
+  symbol: string;
+  lastPrice: number;
+  bidPrice: number;
+  askPrice: number;
+  volume24h: number;
+  priceChange24h: number;
+  timestamp: number;
 }
 
 export class CarbonTradingAgent extends BaseAgent {
   private config: TradingAgentConfig;
-  private marketData: MarketData[] = [];
-  private orderBook: {
-    bids: Array<{ price: number; amount: number; agentId: string }>;
-    asks: Array<{ price: number; amount: number; agentId: string }>;
-  } = { bids: [], asks: [] };
-  private activeOrders: Map<string, any> = new Map();
+  private orderBook: OrderBook;
+  private marketData: MarketData;
+  private activeOrders: Map<string, Order> = new Map();
+  private tradingInterval: NodeJS.Timeout | null = null;
 
   constructor(config: TradingAgentConfig) {
     super(config);
     this.config = config;
+    this.orderBook = {
+      bids: [],
+      asks: [],
+      lastPrice: 5.0, // Starting price
+      volume24h: 0,
+    };
+    this.marketData = {
+      symbol: 'CCT/HBAR',
+      lastPrice: 5.0,
+      bidPrice: 4.9,
+      askPrice: 5.1,
+      volume24h: 0,
+      priceChange24h: 0,
+      timestamp: Date.now(),
+    };
+    this.setupMessageHandlers();
   }
 
-  protected setupMessageHandlers(): void {
+  /**
+   * Initialize the agent
+   */
+  async initialize(): Promise<void> {
+    console.log(`📈 Initializing Carbon Trading Agent: ${this.config.name}`);
+
+    // Start trading activities
+    this.startTrading();
+
+    // Start market data updates
+    this.startMarketDataUpdates();
+
+    // Start heartbeat
+    this.startHeartbeat();
+
+    this.isRunning = true;
+    this.updateActivity();
+
+    console.log(`✅ Carbon Trading Agent initialized: ${this.config.name}`);
+  }
+
+  /**
+   * Shutdown the agent
+   */
+  async shutdown(): Promise<void> {
+    console.log(`🛑 ${this.config.name}: Shutting down...`);
+
+    if (this.tradingInterval) {
+      clearInterval(this.tradingInterval);
+    }
+
+    this.isRunning = false;
+    this.state.isOnline = false;
+
+    console.log(`✅ ${this.config.name}: Shutdown complete`);
+  }
+
+  /**
+   * Setup message handlers
+   */
+  private setupMessageHandlers(): void {
     this.messageHandlers.set(
       MessageType.CREDIT_OFFER,
       this.handleCreditOffer.bind(this)
@@ -65,8 +137,20 @@ export class CarbonTradingAgent extends BaseAgent {
       this.handleCreditRequest.bind(this)
     );
     this.messageHandlers.set(
+      MessageType.PRICE_QUOTE,
+      this.handlePriceQuote.bind(this)
+    );
+    this.messageHandlers.set(
       MessageType.PRICE_NEGOTIATION,
       this.handlePriceNegotiation.bind(this)
+    );
+    this.messageHandlers.set(
+      MessageType.ORDER_PLACEMENT,
+      this.handleOrderPlacement.bind(this)
+    );
+    this.messageHandlers.set(
+      MessageType.ORDER_FILL,
+      this.handleOrderFill.bind(this)
     );
     this.messageHandlers.set(
       MessageType.TRANSACTION_PROPOSAL,
@@ -80,503 +164,510 @@ export class CarbonTradingAgent extends BaseAgent {
       MessageType.TRANSACTION_REJECT,
       this.handleTransactionReject.bind(this)
     );
+    this.messageHandlers.set(
+      MessageType.HEARTBEAT,
+      this.handleHeartbeat.bind(this)
+    );
   }
 
   /**
-   * Initialize the trading agent
+   * Start trading activities
    */
-  async initialize(): Promise<void> {
-    await super.initialize();
-
-    // Start market making
-    this.startMarketMaking();
-
-    // Start price discovery
-    this.startPriceDiscovery();
-
-    // Start order book management
-    this.startOrderBookManagement();
-
-    console.log(`Carbon Trading Agent ${this.config.name} initialized`);
+  private startTrading(): void {
+    this.tradingInterval = setInterval(() => {
+      this.executeTradingStrategy();
+    }, 2000); // Execute strategy every 2 seconds
   }
 
   /**
-   * Start market making process
+   * Execute trading strategy
    */
-  private startMarketMaking(): void {
-    setInterval(async () => {
-      try {
-        await this.updateMarketMakingQuotes();
-      } catch (error) {
-        console.error('Error in market making:', error);
-      }
-    }, 10000); // Update every 10 seconds
-  }
-
-  /**
-   * Update market making quotes
-   */
-  private async updateMarketMakingQuotes(): Promise<void> {
-    const currentPrice = this.getCurrentMarketPrice();
-    const spread = this.config.marketMaking.spreadPercentage / 100;
-
-    const bidPrice = currentPrice * (1 - spread / 2);
-    const askPrice = currentPrice * (1 + spread / 2);
-
-    // Check inventory levels
-    if (this.state.credits < this.config.marketMaking.minInventory) {
-      // Need to buy credits
-      await this.placeBuyOrder(
-        bidPrice,
-        this.config.marketMaking.minInventory - this.state.credits
-      );
-    }
-
-    if (this.state.credits > this.config.marketMaking.maxInventory) {
-      // Need to sell credits
-      await this.placeSellOrder(
-        askPrice,
-        this.state.credits - this.config.marketMaking.maxInventory
-      );
-    }
-
-    // Update market data
-    this.updateMarketData({
-      timestamp: Date.now(),
-      price: currentPrice,
-      volume: 0,
-      bid: bidPrice,
-      ask: askPrice,
-      spread: askPrice - bidPrice,
-    });
-  }
-
-  /**
-   * Start price discovery process
-   */
-  private startPriceDiscovery(): void {
-    setInterval(async () => {
-      try {
-        await this.updatePriceDiscovery();
-      } catch (error) {
-        console.error('Error in price discovery:', error);
-      }
-    }, this.config.priceDiscovery.updateInterval);
-  }
-
-  /**
-   * Update price discovery
-   */
-  private async updatePriceDiscovery(): Promise<void> {
-    // Analyze recent transactions and market data
-    const recentTransactions = this.marketData.slice(-10); // Last 10 data points
-
-    if (recentTransactions.length > 0) {
-      const averagePrice =
-        recentTransactions.reduce((sum, data) => sum + data.price, 0) /
-        recentTransactions.length;
-      const volatility = this.calculateVolatility(recentTransactions);
-
-      console.log(
-        `Market analysis - Average price: ${averagePrice}, Volatility: ${volatility}%`
-      );
-
-      // Adjust quotes based on volatility
-      if (volatility > this.config.priceDiscovery.volatilityThreshold) {
-        console.log('High volatility detected, adjusting spread');
-        // Increase spread during high volatility
-        this.config.marketMaking.spreadPercentage *= 1.2;
-      } else {
-        // Decrease spread during low volatility
-        this.config.marketMaking.spreadPercentage *= 0.95;
-      }
-
-      // Ensure spread stays within reasonable bounds
-      this.config.marketMaking.spreadPercentage = Math.max(
-        0.5,
-        Math.min(5.0, this.config.marketMaking.spreadPercentage)
-      );
+  private executeTradingStrategy(): void {
+    switch (this.config.tradingSettings.tradingStrategy) {
+      case 'MARKET_MAKER':
+        this.executeMarketMaking();
+        break;
+      case 'ARBITRAGE':
+        this.executeArbitrage();
+        break;
+      case 'HIGH_FREQUENCY':
+        this.executeHighFrequencyTrading();
+        break;
     }
   }
 
   /**
-   * Calculate price volatility
+   * Execute market making strategy
    */
-  private calculateVolatility(data: MarketData[]): number {
-    if (data.length < 2) return 0;
+  private executeMarketMaking(): void {
+    // Place bid orders
+    if (this.orderBook.bids.length < 3) {
+      this.placeBidOrder();
+    }
 
-    const prices = data.map(d => d.price);
-    const mean = prices.reduce((sum, price) => sum + price, 0) / prices.length;
-    const variance =
-      prices.reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) /
-      prices.length;
-    const standardDeviation = Math.sqrt(variance);
+    // Place ask orders
+    if (this.orderBook.asks.length < 3) {
+      this.placeAskOrder();
+    }
 
-    return (standardDeviation / mean) * 100;
+    // Update spreads
+    this.updateSpreads();
   }
 
   /**
-   * Start order book management
+   * Execute arbitrage strategy
    */
-  private startOrderBookManagement(): void {
-    setInterval(async () => {
-      try {
-        await this.matchOrders();
-      } catch (error) {
-        console.error('Error in order book management:', error);
-      }
-    }, 5000); // Check every 5 seconds
-  }
+  private executeArbitrage(): void {
+    // Look for price discrepancies
+    const priceDifference = this.marketData.askPrice - this.marketData.bidPrice;
 
-  /**
-   * Match orders in the order book
-   */
-  private async matchOrders(): Promise<void> {
-    // Sort orders by price
-    this.orderBook.bids.sort((a, b) => b.price - a.price); // Highest bid first
-    this.orderBook.asks.sort((a, b) => a.price - b.price); // Lowest ask first
-
-    // Match orders
-    while (this.orderBook.bids.length > 0 && this.orderBook.asks.length > 0) {
-      const bestBid = this.orderBook.bids[0];
-      const bestAsk = this.orderBook.asks[0];
-
-      if (bestBid.price >= bestAsk.price) {
-        // Match found
-        const matchAmount = Math.min(bestBid.amount, bestAsk.amount);
-        const matchPrice = (bestBid.price + bestAsk.price) / 2; // Mid-price
-
-        console.log(
-          `Order match: ${matchAmount} credits at ${matchPrice} HBAR each`
-        );
-
-        // Execute the match
-        await this.executeMatch(bestBid, bestAsk, matchAmount, matchPrice);
-
-        // Update order book
-        bestBid.amount -= matchAmount;
-        bestAsk.amount -= matchAmount;
-
-        if (bestBid.amount <= 0) {
-          this.orderBook.bids.shift();
-        }
-        if (bestAsk.amount <= 0) {
-          this.orderBook.asks.shift();
-        }
-      } else {
-        break; // No more matches possible
-      }
+    if (priceDifference > this.config.tradingSettings.minSpread * 2) {
+      // Execute arbitrage trade
+      this.executeArbitrageTrade();
     }
   }
 
   /**
-   * Execute a matched order
+   * Execute high frequency trading
    */
-  private async executeMatch(
-    bid: { price: number; amount: number; agentId: string },
-    ask: { price: number; amount: number; agentId: string },
-    amount: number,
-    price: number
-  ): Promise<void> {
-    const transactionId = `match_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
-    // Notify both parties
-    await this.sendMessage(bid.agentId, MessageType.TRANSACTION_ACCEPT, {
-      transactionId,
-      creditAmount: amount,
-      pricePerCredit: price,
-      counterparty: ask.agentId,
-    });
-
-    await this.sendMessage(ask.agentId, MessageType.TRANSACTION_ACCEPT, {
-      transactionId,
-      creditAmount: amount,
-      pricePerCredit: price,
-      counterparty: bid.agentId,
-    });
-
-    // Update our market data
-    this.updateMarketData({
-      timestamp: Date.now(),
-      price: price,
-      volume: amount,
-      bid: bid.price,
-      ask: ask.price,
-      spread: ask.price - bid.price,
-    });
+  private executeHighFrequencyTrading(): void {
+    // Place small orders frequently
+    if (Math.random() < 0.7) {
+      // 70% chance
+      this.placeSmallOrder();
+    }
   }
 
   /**
-   * Place a buy order
+   * Place bid order
    */
-  private async placeBuyOrder(price: number, amount: number): Promise<void> {
-    const orderId = `buy_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  private placeBidOrder(): void {
+    const bidPrice = this.marketData.lastPrice - (Math.random() * 0.2 + 0.1);
+    const amount = Math.floor(Math.random() * 20) + 5; // 5-25 credits
 
-    this.orderBook.bids.push({
-      price,
-      amount,
+    const order: Order = {
+      id: `bid_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       agentId: this.config.id,
-    });
-
-    this.activeOrders.set(orderId, {
-      type: 'BUY',
-      price,
+      type: 'BID',
       amount,
+      price: bidPrice,
       timestamp: Date.now(),
-    });
+      status: 'ACTIVE',
+    };
 
-    console.log(`Placed buy order: ${amount} credits at ${price} HBAR each`);
+    this.orderBook.bids.push(order);
+    this.activeOrders.set(order.id, order);
+
+    console.log(
+      `📊 ${this.config.name}: Placed bid order - ${amount} credits @ ${bidPrice} HBAR`
+    );
   }
 
   /**
-   * Place a sell order
+   * Place ask order
    */
-  private async placeSellOrder(price: number, amount: number): Promise<void> {
-    const orderId = `sell_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  private placeAskOrder(): void {
+    const askPrice = this.marketData.lastPrice + (Math.random() * 0.2 + 0.1);
+    const amount = Math.floor(Math.random() * 20) + 5; // 5-25 credits
 
-    this.orderBook.asks.push({
-      price,
-      amount,
+    const order: Order = {
+      id: `ask_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       agentId: this.config.id,
-    });
-
-    this.activeOrders.set(orderId, {
-      type: 'SELL',
-      price,
+      type: 'ASK',
       amount,
+      price: askPrice,
       timestamp: Date.now(),
-    });
+      status: 'ACTIVE',
+    };
 
-    console.log(`Placed sell order: ${amount} credits at ${price} HBAR each`);
-  }
-
-  /**
-   * Handle credit offer messages
-   */
-  private async handleCreditOffer(message: A2AMessage): Promise<void> {
-    const offer = message.payload;
-
-    console.log(`Received credit offer from ${message.from}:`, offer);
-
-    // Add to order book as ask
-    this.orderBook.asks.push({
-      price: offer.pricePerCredit,
-      amount: offer.creditAmount,
-      agentId: message.from,
-    });
-
-    // Check for immediate matches
-    await this.matchOrders();
-  }
-
-  /**
-   * Handle credit request messages
-   */
-  private async handleCreditRequest(message: A2AMessage): Promise<void> {
-    const request = message.payload;
-
-    console.log(`Received credit request from ${message.from}:`, request);
-
-    // Add to order book as bid
-    this.orderBook.bids.push({
-      price: request.maxPricePerCredit,
-      amount: request.creditAmount,
-      agentId: message.from,
-    });
-
-    // Check for immediate matches
-    await this.matchOrders();
-  }
-
-  /**
-   * Handle price negotiation messages
-   */
-  private async handlePriceNegotiation(message: A2AMessage): Promise<void> {
-    const negotiation = message.payload;
+    this.orderBook.asks.push(order);
+    this.activeOrders.set(order.id, order);
 
     console.log(
-      `Received price negotiation from ${message.from}:`,
-      negotiation
+      `📊 ${this.config.name}: Placed ask order - ${amount} credits @ ${askPrice} HBAR`
     );
-
-    // Provide market data and recommendations
-    const marketAnalysis = this.getMarketAnalysis();
-
-    await this.sendMessage(message.from, MessageType.PRICE_NEGOTIATION, {
-      proposedPrice: negotiation.proposedPrice,
-      marketAnalysis,
-      recommendation: this.getPriceRecommendation(negotiation.proposedPrice),
-    });
   }
 
   /**
-   * Handle transaction proposal messages
+   * Place small order for HFT
    */
-  private async handleTransactionProposal(message: A2AMessage): Promise<void> {
-    const proposal = message.payload;
+  private placeSmallOrder(): void {
+    const isBid = Math.random() < 0.5;
+    const price = isBid
+      ? this.marketData.lastPrice - Math.random() * 0.1
+      : this.marketData.lastPrice + Math.random() * 0.1;
+    const amount = Math.floor(Math.random() * 5) + 1; // 1-5 credits
 
-    console.log(
-      `Received transaction proposal from ${message.from}:`,
-      proposal
-    );
+    const order: Order = {
+      id: `${isBid ? 'bid' : 'ask'}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      agentId: this.config.id,
+      type: isBid ? 'BID' : 'ASK',
+      amount,
+      price,
+      timestamp: Date.now(),
+      status: 'ACTIVE',
+    };
 
-    // Validate the proposal against market conditions
-    const marketPrice = this.getCurrentMarketPrice();
-    const priceDeviation =
-      Math.abs(proposal.pricePerCredit - marketPrice) / marketPrice;
-
-    if (priceDeviation > 0.1) {
-      // More than 10% deviation
-      await this.sendMessage(message.from, MessageType.TRANSACTION_REJECT, {
-        transactionId: proposal.transactionId,
-        reason: `Price deviation too high: ${priceDeviation * 100}%`,
-        marketPrice,
-      });
-      return;
+    if (isBid) {
+      this.orderBook.bids.push(order);
+    } else {
+      this.orderBook.asks.push(order);
     }
-
-    // Accept the proposal
-    await this.sendMessage(message.from, MessageType.TRANSACTION_ACCEPT, {
-      transactionId: proposal.transactionId,
-      confirmation: 'Transaction validated and accepted',
-    });
-  }
-
-  /**
-   * Handle transaction accept messages
-   */
-  private async handleTransactionAccept(message: A2AMessage): Promise<void> {
-    const accept = message.payload;
+    this.activeOrders.set(order.id, order);
 
     console.log(
-      `Transaction ${accept.transactionId} accepted by ${message.from}`
-    );
-
-    // Update market data
-    this.updateMarketData({
-      timestamp: Date.now(),
-      price: accept.pricePerCredit || this.getCurrentMarketPrice(),
-      volume: accept.creditAmount || 0,
-      bid: this.getBestBid(),
-      ask: this.getBestAsk(),
-      spread: this.getSpread(),
-    });
-  }
-
-  /**
-   * Handle transaction reject messages
-   */
-  private async handleTransactionReject(message: A2AMessage): Promise<void> {
-    const reject = message.payload;
-
-    console.log(
-      `Transaction ${reject.transactionId} rejected by ${message.from}: ${reject.reason}`
+      `⚡ ${this.config.name}: Placed ${isBid ? 'bid' : 'ask'} order - ${amount} credits @ ${price} HBAR`
     );
   }
 
   /**
-   * Get current market price
+   * Execute arbitrage trade
    */
-  private getCurrentMarketPrice(): number {
-    if (this.marketData.length === 0) return 1.0; // Default price
+  private executeArbitrageTrade(): void {
+    const buyPrice = this.marketData.bidPrice;
+    const sellPrice = this.marketData.askPrice;
+    const amount = Math.floor(Math.random() * 10) + 5; // 5-15 credits
+    const profit = (sellPrice - buyPrice) * amount;
 
-    const latest = this.marketData[this.marketData.length - 1];
-    return latest.price;
+    console.log(
+      `💰 ${this.config.name}: Executing arbitrage trade - Buy @ ${buyPrice}, Sell @ ${sellPrice}, Profit: ${profit} HBAR`
+    );
+
+    // Simulate trade execution
+    this.state.performance.totalCreditsTraded += amount;
+    this.state.performance.totalRevenue += profit;
+    this.state.totalTransactions++;
   }
 
   /**
-   * Get best bid price
+   * Update spreads
    */
-  private getBestBid(): number {
-    if (this.orderBook.bids.length === 0) return 0;
-    return Math.max(...this.orderBook.bids.map(bid => bid.price));
+  private updateSpreads(): void {
+    if (this.orderBook.bids.length > 0 && this.orderBook.asks.length > 0) {
+      const bestBid = Math.max(...this.orderBook.bids.map(b => b.price));
+      const bestAsk = Math.min(...this.orderBook.asks.map(a => a.price));
+
+      this.marketData.bidPrice = bestBid;
+      this.marketData.askPrice = bestAsk;
+      this.marketData.lastPrice = (bestBid + bestAsk) / 2;
+    }
   }
 
   /**
-   * Get best ask price
+   * Start market data updates
    */
-  private getBestAsk(): number {
-    if (this.orderBook.asks.length === 0) return Infinity;
-    return Math.min(...this.orderBook.asks.map(ask => ask.price));
-  }
-
-  /**
-   * Get current spread
-   */
-  private getSpread(): number {
-    const bestBid = this.getBestBid();
-    const bestAsk = this.getBestAsk();
-    return bestAsk - bestBid;
+  private startMarketDataUpdates(): void {
+    setInterval(() => {
+      this.updateMarketData();
+    }, 5000); // Update every 5 seconds
   }
 
   /**
    * Update market data
    */
-  private updateMarketData(data: MarketData): void {
-    this.marketData.push(data);
+  private updateMarketData(): void {
+    // Simulate price movement
+    const priceChange = (Math.random() - 0.5) * 0.2; // -0.1 to +0.1 HBAR
+    this.marketData.lastPrice = Math.max(
+      0.1,
+      this.marketData.lastPrice + priceChange
+    );
 
-    // Keep only last 100 data points
-    if (this.marketData.length > 100) {
-      this.marketData = this.marketData.slice(-100);
+    // Update volume
+    this.marketData.volume24h += Math.random() * 100;
+
+    // Update timestamp
+    this.marketData.timestamp = Date.now();
+
+    // Broadcast market update
+    this.sendMessage({
+      from: this.config.id,
+      to: 'broadcast',
+      type: MessageType.MARKET_UPDATE,
+      payload: this.marketData,
+    });
+  }
+
+  /**
+   * Handle credit offer
+   */
+  private async handleCreditOffer(message: A2AMessage): Promise<void> {
+    const offer = message.payload;
+    console.log(
+      `📨 ${this.config.name}: Received credit offer from ${message.from}`
+    );
+
+    // Analyze the offer
+    if (this.isGoodOffer(offer)) {
+      // Place bid order
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.ORDER_PLACEMENT,
+        payload: {
+          creditAmount: Math.min(offer.creditAmount, 20), // Max 20 credits
+          pricePerCredit: offer.pricePerCredit,
+          totalAmount: Math.min(offer.creditAmount, 20) * offer.pricePerCredit,
+          buyerAgentId: this.config.id,
+        },
+      });
+
+      console.log(
+        `✅ ${this.config.name}: Placed order for credit offer from ${message.from}`
+      );
     }
   }
 
   /**
-   * Get market analysis
+   * Handle credit request
    */
-  private getMarketAnalysis(): any {
-    const recentData = this.marketData.slice(-10);
-    const volatility = this.calculateVolatility(recentData);
-    const averagePrice =
-      recentData.reduce((sum, data) => sum + data.price, 0) / recentData.length;
+  private async handleCreditRequest(message: A2AMessage): Promise<void> {
+    const request = message.payload;
+    console.log(
+      `📨 ${this.config.name}: Received credit request from ${message.from}`
+    );
 
-    return {
-      currentPrice: this.getCurrentMarketPrice(),
-      averagePrice,
-      volatility,
-      spread: this.getSpread(),
-      volume: recentData.reduce((sum, data) => sum + data.volume, 0),
-      orderBookDepth: {
-        bids: this.orderBook.bids.length,
-        asks: this.orderBook.asks.length,
-      },
-    };
+    // Check if we have credits to sell
+    if (this.state.credits >= request.creditAmount) {
+      // Provide price quote
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.PRICE_QUOTE,
+        payload: {
+          creditAmount: request.creditAmount,
+          pricePerCredit: this.calculateAskPrice(),
+          totalAmount: request.creditAmount * this.calculateAskPrice(),
+          sellerAgentId: this.config.id,
+        },
+      });
+
+      console.log(
+        `✅ ${this.config.name}: Provided price quote to ${message.from}`
+      );
+    }
   }
 
   /**
-   * Get price recommendation
+   * Handle price quote
    */
-  private getPriceRecommendation(proposedPrice: number): string {
-    const marketPrice = this.getCurrentMarketPrice();
-    const deviation = (proposedPrice - marketPrice) / marketPrice;
+  private async handlePriceQuote(message: A2AMessage): Promise<void> {
+    const quote = message.payload;
+    console.log(
+      `💰 ${this.config.name}: Received price quote from ${message.from}`
+    );
 
-    if (deviation > 0.05) return 'Price seems high, consider lowering';
-    if (deviation < -0.05) return 'Price seems low, consider raising';
-    return 'Price is fair based on current market conditions';
+    // Analyze the quote
+    if (this.isGoodQuote(quote)) {
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.ORDER_PLACEMENT,
+        payload: {
+          creditAmount: quote.creditAmount,
+          pricePerCredit: quote.pricePerCredit,
+          totalAmount: quote.totalAmount,
+          buyerAgentId: this.config.id,
+        },
+      });
+
+      console.log(
+        `✅ ${this.config.name}: Placed order for price quote from ${message.from}`
+      );
+    }
   }
 
   /**
-   * Get agent statistics
+   * Handle price negotiation
    */
-  getStatistics(): any {
-    return {
-      agentId: this.config.id,
-      credits: this.state.credits,
-      hbarBalance: this.state.hbarBalance,
-      marketData: {
-        currentPrice: this.getCurrentMarketPrice(),
-        spread: this.getSpread(),
-        volatility: this.calculateVolatility(this.marketData.slice(-10)),
-        dataPoints: this.marketData.length,
+  private async handlePriceNegotiation(message: A2AMessage): Promise<void> {
+    const negotiation = message.payload;
+    console.log(
+      `💰 ${this.config.name}: Received price negotiation from ${message.from}`
+    );
+
+    // Counter-offer if needed
+    const counterPrice = this.calculateCounterPrice(negotiation.proposedPrice);
+
+    await this.sendMessage({
+      from: this.config.id,
+      to: message.from,
+      type: MessageType.PRICE_NEGOTIATION,
+      payload: {
+        proposedPrice: counterPrice,
+        accepted: Math.abs(counterPrice - negotiation.proposedPrice) < 0.1,
+        reasoning: 'Counter-offer based on market conditions',
       },
+    });
+
+    console.log(
+      `💰 ${this.config.name}: Counter-offered price: ${counterPrice} HBAR`
+    );
+  }
+
+  /**
+   * Handle order placement
+   */
+  private async handleOrderPlacement(message: A2AMessage): Promise<void> {
+    const order = message.payload;
+    console.log(
+      `📋 ${this.config.name}: Received order placement from ${message.from}`
+    );
+
+    // Process the order
+    const orderId = `order_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    await this.sendMessage({
+      from: this.config.id,
+      to: message.from,
+      type: MessageType.ORDER_FILL,
+      payload: {
+        orderId,
+        creditAmount: order.creditAmount,
+        pricePerCredit: order.pricePerCredit,
+        totalAmount: order.totalAmount,
+        status: 'FILLED',
+      },
+    });
+
+    console.log(`✅ ${this.config.name}: Filled order ${orderId}`);
+  }
+
+  /**
+   * Handle order fill
+   */
+  private async handleOrderFill(message: A2AMessage): Promise<void> {
+    const fill = message.payload;
+    console.log(`✅ ${this.config.name}: Order ${fill.orderId} filled`);
+
+    // Update performance metrics
+    this.state.performance.totalCreditsTraded += fill.creditAmount;
+    this.state.performance.totalRevenue += fill.totalAmount;
+    this.state.totalTransactions++;
+  }
+
+  /**
+   * Handle transaction proposal
+   */
+  private async handleTransactionProposal(message: A2AMessage): Promise<void> {
+    const proposal = message.payload;
+    console.log(
+      `📋 ${this.config.name}: Received transaction proposal from ${message.from}`
+    );
+
+    // Accept the transaction
+    await this.sendMessage({
+      from: this.config.id,
+      to: message.from,
+      type: MessageType.TRANSACTION_ACCEPT,
+      payload: {
+        transactionId: proposal.transactionId,
+        confirmation: 'Transaction accepted by trading agent',
+      },
+    });
+
+    console.log(
+      `✅ ${this.config.name}: Accepted transaction ${proposal.transactionId}`
+    );
+  }
+
+  /**
+   * Handle transaction accept
+   */
+  private async handleTransactionAccept(message: A2AMessage): Promise<void> {
+    const accept = message.payload;
+    console.log(
+      `✅ ${this.config.name}: Transaction ${accept.transactionId} accepted`
+    );
+  }
+
+  /**
+   * Handle transaction reject
+   */
+  private async handleTransactionReject(message: A2AMessage): Promise<void> {
+    const reject = message.payload;
+    console.log(
+      `❌ ${this.config.name}: Transaction rejected: ${reject.reason}`
+    );
+  }
+
+  /**
+   * Handle heartbeat
+   */
+  private async handleHeartbeat(message: A2AMessage): Promise<void> {
+    console.log(
+      `💓 ${this.config.name}: Received heartbeat from ${message.from}`
+    );
+  }
+
+  /**
+   * Start heartbeat
+   */
+  private startHeartbeat(): void {
+    setInterval(() => {
+      this.sendMessage({
+        from: this.config.id,
+        to: 'broadcast',
+        type: MessageType.HEARTBEAT,
+        payload: {
+          agentId: this.config.id,
+          status: 'online',
+          marketData: this.marketData,
+          activeOrders: this.activeOrders.size,
+          lastActivity: this.state.lastActivity,
+        },
+      });
+    }, 30000); // Send heartbeat every 30 seconds
+  }
+
+  /**
+   * Check if offer is good
+   */
+  private isGoodOffer(offer: any): boolean {
+    return offer.pricePerCredit <= this.marketData.lastPrice * 1.1; // Within 10% of market price
+  }
+
+  /**
+   * Check if quote is good
+   */
+  private isGoodQuote(quote: any): boolean {
+    return quote.pricePerCredit >= this.marketData.lastPrice * 0.9; // Within 10% of market price
+  }
+
+  /**
+   * Calculate ask price
+   */
+  private calculateAskPrice(): number {
+    return this.marketData.lastPrice + (Math.random() * 0.2 + 0.1);
+  }
+
+  /**
+   * Calculate counter price
+   */
+  private calculateCounterPrice(proposedPrice: number): number {
+    return proposedPrice + (Math.random() * 0.1 - 0.05); // Small adjustment
+  }
+
+  /**
+   * Get market summary
+   */
+  getMarketSummary(): any {
+    return {
+      marketData: this.marketData,
       orderBook: {
-        bids: this.orderBook.bids.length,
-        asks: this.orderBook.asks.length,
-        bestBid: this.getBestBid(),
-        bestAsk: this.getBestAsk(),
+        bidCount: this.orderBook.bids.length,
+        askCount: this.orderBook.asks.length,
+        bestBid:
+          this.orderBook.bids.length > 0
+            ? Math.max(...this.orderBook.bids.map(b => b.price))
+            : 0,
+        bestAsk:
+          this.orderBook.asks.length > 0
+            ? Math.min(...this.orderBook.asks.map(a => a.price))
+            : 0,
       },
       activeOrders: this.activeOrders.size,
-      performance: this.state.performance,
+      tradingStrategy: this.config.tradingSettings.tradingStrategy,
     };
   }
 }

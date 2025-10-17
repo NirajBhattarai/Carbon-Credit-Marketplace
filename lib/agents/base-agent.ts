@@ -1,347 +1,228 @@
 /**
- * Base Agent Class for Carbon Credit Trading
- * Implements core functionality for all trading agents
+ * Base Agent Interface
+ * Defines the standard interface for all carbon credit trading agents
  */
-
-import { A2AProtocol, A2AMessage, MessageType } from './a2a-protocol';
 
 export interface AgentConfig {
   id: string;
   name: string;
-  type: AgentType;
   walletAddress: string;
+  agentType: AgentType;
   capabilities: AgentCapability[];
   settings: AgentSettings;
 }
 
 export enum AgentType {
-  CARBON_SEQUESTER = 'carbon_sequester',
-  CARBON_OFFSETTER = 'carbon_offseter',
-  CARBON_TRADER = 'carbon_trader',
-  IOT_MONITOR = 'iot_monitor',
-  MARKET_MAKER = 'market_maker',
+  CARBON_SEQUESTER = 'CARBON_SEQUESTER',
+  CARBON_OFFSETTER = 'CARBON_OFFSETTER',
+  CARBON_TRADER = 'CARBON_TRADER',
 }
 
 export enum AgentCapability {
-  GENERATE_CREDITS = 'generate_credits',
-  BUY_CREDITS = 'buy_credits',
-  SELL_CREDITS = 'sell_credits',
-  MONITOR_IOT = 'monitor_iot',
-  PRICE_DISCOVERY = 'price_discovery',
-  RISK_ASSESSMENT = 'risk_assessment',
-  HUMAN_INTERACTION = 'human_interaction',
+  GENERATE_CREDITS = 'GENERATE_CREDITS',
+  PURCHASE_CREDITS = 'PURCHASE_CREDITS',
+  TRADE_CREDITS = 'TRADE_CREDITS',
+  PRICE_DISCOVERY = 'PRICE_DISCOVERY',
+  MARKET_MAKING = 'MARKET_MAKING',
+  RISK_MANAGEMENT = 'RISK_MANAGEMENT',
+  BUDGET_MANAGEMENT = 'BUDGET_MANAGEMENT',
+  OFFSET_TRACKING = 'OFFSET_TRACKING',
 }
 
 export interface AgentSettings {
-  maxTransactionAmount: number; // in HBAR
-  riskTolerance: 'LOW' | 'MEDIUM' | 'HIGH';
+  isActive: boolean;
+  maxTransactionAmount: number;
+  minTransactionAmount: number;
+  priceVolatility: number;
   humanApprovalRequired: boolean;
-  autoTradingEnabled: boolean;
-  priceRange: {
-    min: number;
-    max: number;
-  };
-  creditTypes: ('SEQUESTER' | 'EMITTER')[];
+  riskThreshold: number;
 }
 
 export interface AgentState {
   credits: number;
   hbarBalance: number;
-  activeTransactions: string[];
+  totalTransactions: number;
+  isOnline: boolean;
   lastActivity: number;
-  status: 'ACTIVE' | 'INACTIVE' | 'ERROR';
-  performance: {
-    totalTrades: number;
-    successfulTrades: number;
-    totalVolume: number;
-    averagePrice: number;
-  };
+  performance: AgentPerformance;
+}
+
+export interface AgentPerformance {
+  totalCreditsGenerated: number;
+  totalCreditsPurchased: number;
+  totalCreditsTraded: number;
+  totalRevenue: number;
+  totalExpenses: number;
+  successRate: number;
+}
+
+export interface A2AMessage {
+  id: string;
+  from: string;
+  to: string;
+  type: MessageType;
+  payload: any;
+  timestamp: number;
+  signature?: string;
+}
+
+export enum MessageType {
+  // Credit Management
+  CREDIT_OFFER = 'CREDIT_OFFER',
+  CREDIT_REQUEST = 'CREDIT_REQUEST',
+  CREDIT_AVAILABILITY = 'CREDIT_AVAILABILITY',
+
+  // Trading
+  PRICE_QUOTE = 'PRICE_QUOTE',
+  PRICE_NEGOTIATION = 'PRICE_NEGOTIATION',
+  ORDER_PLACEMENT = 'ORDER_PLACEMENT',
+  ORDER_FILL = 'ORDER_FILL',
+
+  // Transactions
+  TRANSACTION_PROPOSAL = 'TRANSACTION_PROPOSAL',
+  TRANSACTION_ACCEPT = 'TRANSACTION_ACCEPT',
+  TRANSACTION_REJECT = 'TRANSACTION_REJECT',
+  TRANSACTION_COMPLETE = 'TRANSACTION_COMPLETE',
+
+  // Market Data
+  MARKET_UPDATE = 'MARKET_UPDATE',
+  PRICE_DISCOVERY = 'PRICE_DISCOVERY',
+  VOLUME_UPDATE = 'VOLUME_UPDATE',
+
+  // System
+  HEARTBEAT = 'HEARTBEAT',
+  AGENT_DISCOVERY = 'AGENT_DISCOVERY',
+  CAPABILITY_ADVERTISEMENT = 'CAPABILITY_ADVERTISEMENT',
+  ERROR = 'ERROR',
 }
 
 export abstract class BaseAgent {
   protected config: AgentConfig;
   protected state: AgentState;
-  protected a2aProtocol: A2AProtocol;
   protected messageHandlers: Map<
     MessageType,
     (message: A2AMessage) => Promise<void>
   > = new Map();
+  protected isRunning: boolean = false;
 
   constructor(config: AgentConfig) {
     this.config = config;
     this.state = {
       credits: 0,
-      hbarBalance: 0,
-      activeTransactions: [],
+      hbarBalance: 1000, // Starting balance
+      totalTransactions: 0,
+      isOnline: true,
       lastActivity: Date.now(),
-      status: 'ACTIVE',
       performance: {
-        totalTrades: 0,
-        successfulTrades: 0,
-        totalVolume: 0,
-        averagePrice: 0,
+        totalCreditsGenerated: 0,
+        totalCreditsPurchased: 0,
+        totalCreditsTraded: 0,
+        totalRevenue: 0,
+        totalExpenses: 0,
+        successRate: 100,
       },
     };
-    this.a2aProtocol = new A2AProtocol();
-    this.setupMessageHandlers();
   }
 
   /**
    * Initialize the agent
    */
-  async initialize(): Promise<void> {
-    console.log(`Initializing agent ${this.config.name} (${this.config.id})`);
-
-    // Register message handlers
-    for (const [messageType, handler] of this.messageHandlers) {
-      this.a2aProtocol.registerHandler(messageType, handler);
-    }
-
-    // Start message processing loop
-    this.startMessageProcessing();
-
-    // Start heartbeat
-    this.startHeartbeat();
-
-    console.log(`Agent ${this.config.name} initialized successfully`);
-  }
+  abstract initialize(): Promise<void>;
 
   /**
-   * Setup message handlers - to be implemented by subclasses
+   * Shutdown the agent
    */
-  protected abstract setupMessageHandlers(): void;
+  abstract shutdown(): Promise<void>;
 
   /**
-   * Start processing incoming messages
+   * Process incoming A2A message
    */
-  private async startMessageProcessing(): Promise<void> {
-    setInterval(async () => {
-      try {
-        const messages = await this.a2aProtocol.receiveMessages(this.config.id);
-        for (const message of messages) {
-          await this.processMessage(message);
-        }
-      } catch (error) {
-        console.error(
-          `Error processing messages for agent ${this.config.id}:`,
-          error
-        );
-      }
-    }, 1000); // Process messages every second
-  }
-
-  /**
-   * Start sending heartbeat messages
-   */
-  private async startHeartbeat(): Promise<void> {
-    setInterval(async () => {
-      try {
-        await this.a2aProtocol.sendMessage({
-          from: this.config.id,
-          to: 'broadcast',
-          type: MessageType.HEARTBEAT,
-          payload: {
-            agentId: this.config.id,
-            status: this.state.status,
-            timestamp: Date.now(),
-          },
-        });
-      } catch (error) {
-        console.error(
-          `Error sending heartbeat for agent ${this.config.id}:`,
-          error
-        );
-      }
-    }, 30000); // Send heartbeat every 30 seconds
-  }
-
-  /**
-   * Process a received message
-   */
-  protected async processMessage(message: A2AMessage): Promise<void> {
-    console.log(`Agent ${this.config.id} received message:`, message.type);
-
+  async processMessage(message: A2AMessage): Promise<void> {
     const handler = this.messageHandlers.get(message.type);
     if (handler) {
       await handler(message);
     } else {
-      console.warn(
-        `No handler for message type ${message.type} in agent ${this.config.id}`
+      console.log(
+        `❌ ${this.config.name}: No handler for message type: ${message.type}`
       );
     }
-
-    this.state.lastActivity = Date.now();
   }
 
   /**
-   * Send a message to another agent
+   * Send A2A message
    */
-  protected async sendMessage(
-    to: string,
-    type: MessageType,
-    payload: any
+  async sendMessage(
+    message: Omit<A2AMessage, 'id' | 'timestamp'>
   ): Promise<string> {
-    return this.a2aProtocol.sendMessage({
-      from: this.config.id,
-      to,
-      type,
-      payload,
-    });
-  }
+    const fullMessage: A2AMessage = {
+      ...message,
+      id: this.generateMessageId(),
+      timestamp: Date.now(),
+    };
 
-  /**
-   * Broadcast a message to all agents
-   */
-  protected async broadcastMessage(
-    type: MessageType,
-    payload: any
-  ): Promise<string> {
-    return this.sendMessage('broadcast', type, payload);
-  }
+    console.log(
+      `📤 ${this.config.name}: Sending ${message.type} to ${message.to}`
+    );
 
-  /**
-   * Update agent state
-   */
-  protected updateState(updates: Partial<AgentState>): void {
-    this.state = { ...this.state, ...updates };
-  }
-
-  /**
-   * Check if agent has a specific capability
-   */
-  hasCapability(capability: AgentCapability): boolean {
-    return this.config.capabilities.includes(capability);
+    // In real implementation, this would go through A2A protocol
+    // For now, we'll just log it
+    return fullMessage.id;
   }
 
   /**
    * Get agent information
    */
-  getInfo(): { config: AgentConfig; state: AgentState } {
+  getInfo(): any {
     return {
-      config: this.config,
-      state: this.state,
+      id: this.config.id,
+      name: this.config.name,
+      type: this.config.agentType,
+      walletAddress: this.config.walletAddress,
+      capabilities: this.config.capabilities,
+      isOnline: this.state.isOnline,
+      lastActivity: this.state.lastActivity,
     };
   }
 
   /**
-   * Request human approval for a transaction
+   * Get agent statistics
    */
-  protected async requestHumanApproval(
-    transactionId: string,
-    amount: number,
-    reason: string,
-    urgency: 'LOW' | 'MEDIUM' | 'HIGH' = 'MEDIUM'
-  ): Promise<boolean> {
-    if (!this.config.settings.humanApprovalRequired) {
-      return true; // Auto-approve if human approval not required
-    }
-
-    console.log(`Requesting human approval for transaction ${transactionId}`);
-
-    // Send approval request to human interface
-    await this.sendMessage(
-      'human_interface',
-      MessageType.HUMAN_APPROVAL_REQUEST,
-      {
-        transactionId,
-        amount,
-        reason,
-        urgency,
-        context: {
-          agentId: this.config.id,
-          action: 'transaction_approval',
-          riskLevel: this.calculateRiskLevel(amount),
-        },
-      }
-    );
-
-    // For demo purposes, we'll simulate human approval
-    // In a real implementation, this would wait for human response
-    return this.simulateHumanApproval(transactionId, amount);
+  getStatistics(): any {
+    return {
+      credits: this.state.credits,
+      hbarBalance: this.state.hbarBalance,
+      totalTransactions: this.state.totalTransactions,
+      performance: this.state.performance,
+      isRunning: this.isRunning,
+    };
   }
 
   /**
-   * Calculate risk level based on transaction amount
+   * Get agent state
    */
-  private calculateRiskLevel(amount: number): 'LOW' | 'MEDIUM' | 'HIGH' {
-    const maxAmount = this.config.settings.maxTransactionAmount;
-    if (amount <= maxAmount * 0.1) return 'LOW';
-    if (amount <= maxAmount * 0.5) return 'MEDIUM';
-    return 'HIGH';
+  getState(): AgentState {
+    return { ...this.state };
   }
 
   /**
-   * Simulate human approval (for demo purposes)
+   * Update agent configuration
    */
-  private simulateHumanApproval(
-    transactionId: string,
-    amount: number
-  ): boolean {
-    // Simulate approval based on amount and risk tolerance
-    const maxAmount = this.config.settings.maxTransactionAmount;
-    const riskTolerance = this.config.settings.riskTolerance;
-
-    if (amount > maxAmount) return false;
-    if (riskTolerance === 'LOW' && amount > maxAmount * 0.3) return false;
-    if (riskTolerance === 'MEDIUM' && amount > maxAmount * 0.7) return false;
-
-    console.log(`Human approval granted for transaction ${transactionId}`);
-    return true;
+  updateConfig(updates: Partial<AgentConfig>): void {
+    this.config = { ...this.config, ...updates };
+    console.log(`🔧 ${this.config.name}: Configuration updated`);
   }
 
   /**
-   * Execute a transaction
+   * Generate unique message ID
    */
-  protected async executeTransaction(
-    transactionId: string,
-    amount: number,
-    recipient: string,
-    description: string
-  ): Promise<boolean> {
-    try {
-      // Check if human approval is required and obtained
-      const approved = await this.requestHumanApproval(
-        transactionId,
-        amount,
-        `Transaction: ${description}`
-      );
-
-      if (!approved) {
-        console.log(`Transaction ${transactionId} rejected by human approval`);
-        return false;
-      }
-
-      // Execute the transaction (simulated)
-      console.log(
-        `Executing transaction ${transactionId}: ${amount} HBAR to ${recipient}`
-      );
-
-      // Update state
-      this.state.hbarBalance -= amount;
-      this.state.activeTransactions.push(transactionId);
-      this.state.performance.totalTrades++;
-      this.state.performance.totalVolume += amount;
-
-      // Simulate transaction completion
-      setTimeout(() => {
-        this.state.activeTransactions = this.state.activeTransactions.filter(
-          id => id !== transactionId
-        );
-        this.state.performance.successfulTrades++;
-      }, 5000);
-
-      return true;
-    } catch (error) {
-      console.error(`Error executing transaction ${transactionId}:`, error);
-      return false;
-    }
+  protected generateMessageId(): string {
+    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
-   * Shutdown the agent
+   * Update last activity timestamp
    */
-  async shutdown(): Promise<void> {
-    console.log(`Shutting down agent ${this.config.name}`);
-    this.state.status = 'INACTIVE';
+  protected updateActivity(): void {
+    this.state.lastActivity = Date.now();
   }
 }

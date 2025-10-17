@@ -1,16 +1,14 @@
 /**
- * Agent Ecosystem Page
- * Displays the carbon credit trading agent ecosystem
+ * Agent Ecosystem Chat Page
+ * Provides a conversational interface to communicate with A2A agents
  */
 
-import { AgentEcosystemDashboard } from '@/components/AgentEcosystemDashboard';
+import AgentEcosystemChat from '@/components/AgentEcosystemChat';
 
-export default function AgentEcosystemPage() {
+export default function AgentEcosystemChatPage() {
   return (
-    <div className='min-h-screen bg-gray-50'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-        <AgentEcosystemDashboard />
-      </div>
+    <div className='h-screen'>
+      <AgentEcosystemChat />
     </div>
   );
 }

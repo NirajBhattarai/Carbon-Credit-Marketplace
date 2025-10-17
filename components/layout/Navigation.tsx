@@ -30,7 +30,7 @@ const navigationItems: NavigationItem[] = [
     name: 'Agent Ecosystem',
     href: '/agent-ecosystem',
     icon: '🤖',
-    badge: 'NEW',
+    badge: 'LIVE',
   },
   { name: 'Developer', href: '/developer', icon: '⚙️' },
 ];

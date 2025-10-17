@@ -1,42 +1,96 @@
 /**
  * Carbon Sequestration Agent
- * Monitors IoT devices and generates carbon credits based on environmental data
+ * Generates carbon credits from IoT data and manages credit offers
  */
 
 import {
   BaseAgent,
   AgentConfig,
-  AgentType,
   AgentCapability,
+  A2AMessage,
+  MessageType,
 } from './base-agent';
-import { A2AMessage, MessageType, CreditOfferMessage } from './a2a-protocol';
-import { db } from '@/lib/db';
-import { iotDevices, deviceData, userCarbonCredits } from '@/lib/db/schema';
-import { eq, and, gte } from 'drizzle-orm';
 
 export interface SequestrationAgentConfig extends AgentConfig {
-  monitoredDevices: string[];
-  creditGenerationThresholds: {
-    co2Reduction: number;
-    energyGeneration: number;
-    timeWindow: number; // in seconds
+  agentType: 'CARBON_SEQUESTER';
+  capabilities: [
+    AgentCapability.GENERATE_CREDITS,
+    AgentCapability.PRICE_DISCOVERY,
+    AgentCapability.RISK_MANAGEMENT,
+  ];
+  sequestrationSettings: {
+    projectName: string;
+    location: string;
+    creditGenerationRate: number; // credits per hour
+    basePricePerCredit: number; // HBAR per credit
+    maxCreditsPerOffer: number;
+    minCreditsPerOffer: number;
+    qualityThreshold: number; // 0-100
   };
-  creditPricing: {
-    basePrice: number; // HBAR per credit
-    priceVariation: number; // percentage variation
-  };
+}
+
+export interface IoTData {
+  deviceId: string;
+  co2Reduced: number;
+  energySaved: number;
+  temperature: number;
+  humidity: number;
+  timestamp: number;
 }
 
 export class CarbonSequestrationAgent extends BaseAgent {
   private config: SequestrationAgentConfig;
-  private deviceDataCache: Map<string, any[]> = new Map();
+  private creditGenerationInterval: NodeJS.Timeout | null = null;
+  private pendingOffers: Map<string, any> = new Map();
 
   constructor(config: SequestrationAgentConfig) {
     super(config);
     this.config = config;
+    this.setupMessageHandlers();
   }
 
-  protected setupMessageHandlers(): void {
+  /**
+   * Initialize the agent
+   */
+  async initialize(): Promise<void> {
+    console.log(
+      `🌱 Initializing Carbon Sequestration Agent: ${this.config.name}`
+    );
+
+    // Start credit generation
+    this.startCreditGeneration();
+
+    // Start heartbeat
+    this.startHeartbeat();
+
+    this.isRunning = true;
+    this.updateActivity();
+
+    console.log(
+      `✅ Carbon Sequestration Agent initialized: ${this.config.name}`
+    );
+  }
+
+  /**
+   * Shutdown the agent
+   */
+  async shutdown(): Promise<void> {
+    console.log(`🛑 ${this.config.name}: Shutting down...`);
+
+    if (this.creditGenerationInterval) {
+      clearInterval(this.creditGenerationInterval);
+    }
+
+    this.isRunning = false;
+    this.state.isOnline = false;
+
+    console.log(`✅ ${this.config.name}: Shutdown complete`);
+  }
+
+  /**
+   * Setup message handlers
+   */
+  private setupMessageHandlers(): void {
     this.messageHandlers.set(
       MessageType.CREDIT_REQUEST,
       this.handleCreditRequest.bind(this)
@@ -50,387 +104,324 @@ export class CarbonSequestrationAgent extends BaseAgent {
       this.handleTransactionProposal.bind(this)
     );
     this.messageHandlers.set(
-      MessageType.SENSOR_DATA,
-      this.handleSensorData.bind(this)
+      MessageType.TRANSACTION_ACCEPT,
+      this.handleTransactionAccept.bind(this)
+    );
+    this.messageHandlers.set(
+      MessageType.TRANSACTION_REJECT,
+      this.handleTransactionReject.bind(this)
+    );
+    this.messageHandlers.set(
+      MessageType.HEARTBEAT,
+      this.handleHeartbeat.bind(this)
     );
   }
 
   /**
-   * Initialize the sequestration agent
+   * Start credit generation simulation
    */
-  async initialize(): Promise<void> {
-    await super.initialize();
-
-    // Start monitoring IoT devices
-    this.startDeviceMonitoring();
-
-    // Start credit generation process
-    this.startCreditGeneration();
-
-    console.log(`Carbon Sequestration Agent ${this.config.name} initialized`);
+  private startCreditGeneration(): void {
+    this.creditGenerationInterval = setInterval(() => {
+      this.generateCredits();
+    }, 5000); // Generate credits every 5 seconds
   }
 
   /**
-   * Start monitoring IoT devices for data
+   * Generate credits from simulated IoT data
    */
-  private startDeviceMonitoring(): void {
-    setInterval(async () => {
-      try {
-        await this.processDeviceData();
-      } catch (error) {
-        console.error('Error monitoring devices:', error);
-      }
-    }, 30000); // Check every 30 seconds
-  }
+  private generateCredits(): void {
+    // Simulate IoT data
+    const iotData: IoTData = {
+      deviceId: this.config.id,
+      co2Reduced: 85.5, // Hardcoded for testing
+      energySaved: 42.3,
+      temperature: 24.8,
+      humidity: 65.2,
+      timestamp: Date.now(),
+    };
 
-  /**
-   * Process data from monitored devices
-   */
-  private async processDeviceData(): Promise<void> {
-    for (const deviceId of this.config.monitoredDevices) {
-      try {
-        // Get recent device data
-        const recentData = await db
-          .select()
-          .from(deviceData)
-          .where(
-            and(
-              eq(deviceData.deviceId, deviceId),
-              gte(
-                deviceData.timestamp,
-                new Date(
-                  Date.now() -
-                    this.config.creditGenerationThresholds.timeWindow * 1000
-                )
-              )
-            )
-          )
-          .orderBy(deviceData.timestamp);
+    // Calculate credits based on environmental impact
+    const creditsGenerated = this.calculateCreditsFromIoTData(iotData);
 
-        if (recentData.length > 0) {
-          await this.analyzeDeviceData(deviceId, recentData);
-        }
-      } catch (error) {
-        console.error(`Error processing data for device ${deviceId}:`, error);
+    if (creditsGenerated > 0) {
+      this.state.credits += creditsGenerated;
+      this.state.performance.totalCreditsGenerated += creditsGenerated;
+      this.updateActivity();
+
+      console.log(
+        `🌱 ${this.config.name}: Generated ${creditsGenerated} credits (Total: ${this.state.credits})`
+      );
+
+      // Broadcast credit offer if we have enough credits
+      if (
+        this.state.credits >=
+        this.config.sequestrationSettings.minCreditsPerOffer
+      ) {
+        this.broadcastCreditOffer();
       }
     }
   }
 
   /**
-   * Analyze device data to determine credit generation
+   * Calculate credits from IoT data
    */
-  private async analyzeDeviceData(
-    deviceId: string,
-    data: any[]
-  ): Promise<void> {
-    const totals = data.reduce(
-      (acc, record) => ({
-        co2Reduction: acc.co2Reduction + parseFloat(record.co2Value || 0),
-        energyGeneration:
-          acc.energyGeneration + parseFloat(record.energyValue || 0),
-      }),
-      { co2Reduction: 0, energyGeneration: 0 }
-    );
+  private calculateCreditsFromIoTData(data: IoTData): number {
+    const co2Factor = data.co2Reduced / 100; // 100 CO2 units = 1 credit
+    const energyFactor = data.energySaved / 50; // 50 energy units = 1 credit
+    const environmentalFactor = (data.temperature + data.humidity) / 100;
 
-    const thresholds = this.config.creditGenerationThresholds;
-
-    // Check if thresholds are met for credit generation
-    if (
-      totals.co2Reduction >= thresholds.co2Reduction ||
-      totals.energyGeneration >= thresholds.energyGeneration
-    ) {
-      const creditsToGenerate = this.calculateCreditsToGenerate(totals);
-
-      if (creditsToGenerate > 0) {
-        await this.generateCarbonCredits(deviceId, creditsToGenerate, totals);
-      }
-    }
+    const baseCredits = (co2Factor + energyFactor) * environmentalFactor;
+    return Math.floor(baseCredits * 10) / 10;
   }
 
   /**
-   * Calculate how many credits to generate based on data
+   * Broadcast credit offer
    */
-  private calculateCreditsToGenerate(totals: {
-    co2Reduction: number;
-    energyGeneration: number;
-  }): number {
-    const co2Credits = Math.floor(
-      totals.co2Reduction / this.config.creditGenerationThresholds.co2Reduction
-    );
-    const energyCredits = Math.floor(
-      totals.energyGeneration /
-        this.config.creditGenerationThresholds.energyGeneration
+  private async broadcastCreditOffer(): Promise<void> {
+    const offerAmount = Math.min(
+      this.state.credits,
+      this.config.sequestrationSettings.maxCreditsPerOffer
     );
 
-    return Math.max(co2Credits, energyCredits);
-  }
-
-  /**
-   * Generate carbon credits and update database
-   */
-  private async generateCarbonCredits(
-    deviceId: string,
-    credits: number,
-    data: { co2Reduction: number; energyGeneration: number }
-  ): Promise<void> {
-    try {
-      // Get device information
-      const device = await db
-        .select()
-        .from(iotDevices)
-        .where(eq(iotDevices.deviceId, deviceId))
-        .limit(1);
-
-      if (device.length === 0) {
-        console.error(`Device ${deviceId} not found`);
-        return;
-      }
-
-      const deviceInfo = device[0];
-
-      // Update user carbon credits
-      await db.insert(userCarbonCredits).values({
-        userId: deviceInfo.applicationId, // Using applicationId as userId for now
-        credits: credits.toString(),
-        co2Reduced: data.co2Reduction.toString(),
-        energySaved: data.energyGeneration.toString(),
-        temperatureImpact: '0',
-        humidityImpact: '0',
-        isOnline: true,
-        timestamp: new Date(),
-      });
-
-      // Update agent state
-      this.state.credits += credits;
-
-      console.log(`Generated ${credits} carbon credits for device ${deviceId}`);
-
-      // Broadcast credit availability
-      await this.broadcastCreditAvailability(credits, deviceId);
-    } catch (error) {
-      console.error(`Error generating carbon credits:`, error);
-    }
-  }
-
-  /**
-   * Broadcast credit availability to other agents
-   */
-  private async broadcastCreditAvailability(
-    credits: number,
-    deviceId: string
-  ): Promise<void> {
-    const offer: CreditOfferMessage = {
-      creditAmount: credits,
-      pricePerCredit: this.calculateCurrentPrice(),
-      sellerAgentId: this.config.id,
-      creditType: 'SEQUESTER',
-      expirationTime: Date.now() + 3600000, // 1 hour
-      metadata: {
-        source: deviceId,
-        verificationData: {
-          deviceId,
-          timestamp: Date.now(),
-        },
-        quality: 'HIGH',
+    const message = {
+      from: this.config.id,
+      to: 'broadcast',
+      type: MessageType.CREDIT_OFFER,
+      payload: {
+        creditAmount: offerAmount,
+        pricePerCredit: this.config.sequestrationSettings.basePricePerCredit,
+        totalPrice:
+          offerAmount * this.config.sequestrationSettings.basePricePerCredit,
+        sellerAgentId: this.config.id,
+        sellerName: this.config.name,
+        projectName: this.config.sequestrationSettings.projectName,
+        location: this.config.sequestrationSettings.location,
+        quality: this.getCreditQuality(),
+        expirationTime: Date.now() + 300000, // 5 minutes
       },
     };
 
-    await this.broadcastMessage(MessageType.CREDIT_OFFER, offer);
+    await this.sendMessage(message);
+    console.log(
+      `📢 ${this.config.name}: Broadcasting credit offer - ${offerAmount} credits @ ${this.config.sequestrationSettings.basePricePerCredit} HBAR each`
+    );
   }
 
   /**
-   * Calculate current price based on market conditions
-   */
-  private calculateCurrentPrice(): number {
-    const basePrice = this.config.creditPricing.basePrice;
-    const variation = this.config.creditPricing.priceVariation;
-
-    // Add some randomness to simulate market fluctuations
-    const randomVariation = (Math.random() - 0.5) * variation;
-    return basePrice * (1 + randomVariation / 100);
-  }
-
-  /**
-   * Handle credit request messages
+   * Handle credit request
    */
   private async handleCreditRequest(message: A2AMessage): Promise<void> {
     const request = message.payload;
+    console.log(
+      `📨 ${this.config.name}: Received credit request from ${message.from}`
+    );
 
-    console.log(`Received credit request from ${message.from}:`, request);
-
-    // Check if we have enough credits
+    // Check availability
     if (this.state.credits < request.creditAmount) {
-      await this.sendMessage(message.from, MessageType.TRANSACTION_REJECT, {
-        reason: 'Insufficient credits available',
-        availableCredits: this.state.credits,
-      });
-      return;
-    }
-
-    // Check if price is acceptable
-    const ourPrice = this.calculateCurrentPrice();
-    if (ourPrice > request.maxPricePerCredit) {
-      await this.sendMessage(message.from, MessageType.PRICE_NEGOTIATION, {
-        proposedPrice: ourPrice,
-        reasoning: `Current market price is ${ourPrice} HBAR per credit`,
-        marketData: {
-          averagePrice: ourPrice,
-          recentTransactions: [],
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.TRANSACTION_REJECT,
+        payload: {
+          reason: 'Insufficient credits available',
+          availableCredits: this.state.credits,
+          requestedCredits: request.creditAmount,
         },
       });
       return;
     }
 
-    // Accept the request
+    // Check price
+    if (
+      this.config.sequestrationSettings.basePricePerCredit >
+      request.maxPricePerCredit
+    ) {
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.PRICE_NEGOTIATION,
+        payload: {
+          proposedPrice: this.config.sequestrationSettings.basePricePerCredit,
+          reasoning: 'Price exceeds maximum acceptable price',
+        },
+      });
+      return;
+    }
+
+    // Accept request
     const transactionId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    await this.sendMessage(message.from, MessageType.TRANSACTION_PROPOSAL, {
-      transactionId,
-      creditAmount: request.creditAmount,
-      pricePerCredit: ourPrice,
-      totalAmount: request.creditAmount * ourPrice,
-      sellerAgentId: this.config.id,
-      buyerAgentId: request.buyerAgentId,
-      smartContractAddress: '0x...', // Would be actual contract address
-      requiresHumanApproval: this.config.settings.humanApprovalRequired,
-      expirationTime: Date.now() + 300000, // 5 minutes
+    await this.sendMessage({
+      from: this.config.id,
+      to: message.from,
+      type: MessageType.TRANSACTION_PROPOSAL,
+      payload: {
+        transactionId,
+        creditAmount: request.creditAmount,
+        pricePerCredit: this.config.sequestrationSettings.basePricePerCredit,
+        totalAmount:
+          request.creditAmount *
+          this.config.sequestrationSettings.basePricePerCredit,
+        sellerAgentId: this.config.id,
+        buyerAgentId: request.buyerAgentId,
+        expirationTime: Date.now() + 300000,
+      },
     });
+
+    console.log(
+      `✅ ${this.config.name}: Sent transaction proposal for ${request.creditAmount} credits`
+    );
   }
 
   /**
-   * Handle price negotiation messages
+   * Handle price negotiation
    */
   private async handlePriceNegotiation(message: A2AMessage): Promise<void> {
     const negotiation = message.payload;
-
     console.log(
-      `Received price negotiation from ${message.from}:`,
-      negotiation
+      `💰 ${this.config.name}: Received price negotiation from ${message.from}`
     );
 
-    // Simple negotiation logic
-    const ourPrice = this.calculateCurrentPrice();
-    const proposedPrice = negotiation.proposedPrice;
+    const priceDifference = Math.abs(
+      negotiation.proposedPrice -
+        this.config.sequestrationSettings.basePricePerCredit
+    );
+    const priceThreshold =
+      this.config.sequestrationSettings.basePricePerCredit * 0.1;
 
-    // Accept if within 10% of our price
-    if (Math.abs(proposedPrice - ourPrice) / ourPrice <= 0.1) {
-      await this.sendMessage(message.from, MessageType.TRANSACTION_ACCEPT, {
-        acceptedPrice: proposedPrice,
-        transactionId: negotiation.transactionId,
+    if (priceDifference <= priceThreshold) {
+      this.config.sequestrationSettings.basePricePerCredit =
+        negotiation.proposedPrice;
+
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.PRICE_NEGOTIATION,
+        payload: {
+          proposedPrice: this.config.sequestrationSettings.basePricePerCredit,
+          accepted: true,
+          reasoning: 'Price negotiation accepted',
+        },
       });
+
+      console.log(
+        `✅ ${this.config.name}: Accepted negotiated price: ${this.config.sequestrationSettings.basePricePerCredit} HBAR`
+      );
     } else {
-      await this.sendMessage(message.from, MessageType.PRICE_NEGOTIATION, {
-        proposedPrice: ourPrice,
-        counterOffer: ourPrice,
-        reasoning: `Our minimum price is ${ourPrice} HBAR per credit`,
-        marketData: negotiation.marketData,
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.PRICE_NEGOTIATION,
+        payload: {
+          proposedPrice: this.config.sequestrationSettings.basePricePerCredit,
+          accepted: false,
+          reasoning: 'Price difference too large',
+        },
       });
+
+      console.log(`❌ ${this.config.name}: Rejected price negotiation`);
     }
   }
 
   /**
-   * Handle transaction proposal messages
+   * Handle transaction proposal
    */
   private async handleTransactionProposal(message: A2AMessage): Promise<void> {
     const proposal = message.payload;
+    console.log(
+      `📋 ${this.config.name}: Received transaction proposal from ${message.from}`
+    );
+
+    if (proposal.creditAmount > this.state.credits) {
+      await this.sendMessage({
+        from: this.config.id,
+        to: message.from,
+        type: MessageType.TRANSACTION_REJECT,
+        payload: {
+          transactionId: proposal.transactionId,
+          reason: 'Insufficient credits available',
+        },
+      });
+      return;
+    }
+
+    await this.sendMessage({
+      from: this.config.id,
+      to: message.from,
+      type: MessageType.TRANSACTION_ACCEPT,
+      payload: {
+        transactionId: proposal.transactionId,
+        confirmation: 'Transaction accepted',
+      },
+    });
 
     console.log(
-      `Received transaction proposal from ${message.from}:`,
-      proposal
+      `✅ ${this.config.name}: Accepted transaction ${proposal.transactionId}`
+    );
+  }
+
+  /**
+   * Handle transaction accept
+   */
+  private async handleTransactionAccept(message: A2AMessage): Promise<void> {
+    const accept = message.payload;
+    console.log(
+      `✅ ${this.config.name}: Transaction ${accept.transactionId} accepted by buyer`
     );
 
-    // Execute the transaction
-    const success = await this.executeTransaction(
-      proposal.transactionId,
-      proposal.totalAmount,
-      proposal.buyerAgentId,
-      `Sell ${proposal.creditAmount} carbon credits`
+    this.state.totalTransactions++;
+    this.state.performance.totalCreditsTraded += accept.creditAmount || 0;
+    this.state.performance.totalRevenue += accept.totalAmount || 0;
+
+    console.log(
+      `🎉 ${this.config.name}: Transaction completed! Total transactions: ${this.state.totalTransactions}`
     );
+  }
 
-    if (success) {
-      // Update credits
-      this.state.credits -= proposal.creditAmount;
+  /**
+   * Handle transaction reject
+   */
+  private async handleTransactionReject(message: A2AMessage): Promise<void> {
+    const reject = message.payload;
+    console.log(
+      `❌ ${this.config.name}: Transaction rejected: ${reject.reason}`
+    );
+  }
 
-      await this.sendMessage(message.from, MessageType.TRANSACTION_ACCEPT, {
-        transactionId: proposal.transactionId,
-        confirmation: 'Transaction executed successfully',
+  /**
+   * Handle heartbeat
+   */
+  private async handleHeartbeat(message: A2AMessage): Promise<void> {
+    console.log(
+      `💓 ${this.config.name}: Received heartbeat from ${message.from}`
+    );
+  }
+
+  /**
+   * Start heartbeat
+   */
+  private startHeartbeat(): void {
+    setInterval(() => {
+      this.sendMessage({
+        from: this.config.id,
+        to: 'broadcast',
+        type: MessageType.HEARTBEAT,
+        payload: {
+          agentId: this.config.id,
+          status: 'online',
+          credits: this.state.credits,
+          lastActivity: this.state.lastActivity,
+        },
       });
-    } else {
-      await this.sendMessage(message.from, MessageType.TRANSACTION_REJECT, {
-        transactionId: proposal.transactionId,
-        reason: 'Transaction execution failed',
-      });
-    }
+    }, 30000); // Send heartbeat every 30 seconds
   }
 
   /**
-   * Handle sensor data messages
+   * Get credit quality
    */
-  private async handleSensorData(message: A2AMessage): Promise<void> {
-    const sensorData = message.payload;
-
-    console.log(`Received sensor data from ${message.from}:`, sensorData);
-
-    // Process the sensor data
-    await this.processSensorData(sensorData);
-  }
-
-  /**
-   * Process incoming sensor data
-   */
-  private async processSensorData(data: any): Promise<void> {
-    // Store in cache for analysis
-    const deviceId = data.deviceId;
-    if (!this.deviceDataCache.has(deviceId)) {
-      this.deviceDataCache.set(deviceId, []);
-    }
-
-    this.deviceDataCache.get(deviceId)!.push(data);
-
-    // Keep only recent data (last hour)
-    const cutoff = Date.now() - 3600000;
-    this.deviceDataCache.set(
-      deviceId,
-      this.deviceDataCache.get(deviceId)!.filter(d => d.timestamp > cutoff)
-    );
-  }
-
-  /**
-   * Start credit generation process
-   */
-  private startCreditGeneration(): void {
-    setInterval(async () => {
-      try {
-        // Process cached data for credit generation
-        for (const [deviceId, data] of this.deviceDataCache) {
-          if (data.length > 0) {
-            await this.analyzeDeviceData(deviceId, data);
-          }
-        }
-      } catch (error) {
-        console.error('Error in credit generation process:', error);
-      }
-    }, 60000); // Check every minute
-  }
-
-  /**
-   * Get agent statistics
-   */
-  getStatistics(): any {
-    return {
-      agentId: this.config.id,
-      credits: this.state.credits,
-      monitoredDevices: this.config.monitoredDevices.length,
-      activeTransactions: this.state.activeTransactions.length,
-      performance: this.state.performance,
-      deviceDataCache: Array.from(this.deviceDataCache.entries()).map(
-        ([deviceId, data]) => ({
-          deviceId,
-          dataPoints: data.length,
-          latestTimestamp:
-            data.length > 0 ? Math.max(...data.map(d => d.timestamp)) : null,
-        })
-      ),
-    };
+  private getCreditQuality(): 'HIGH' | 'MEDIUM' | 'LOW' {
+    if (this.state.credits > 100) return 'HIGH';
+    if (this.state.credits > 50) return 'MEDIUM';
+    return 'LOW';
   }
 }
