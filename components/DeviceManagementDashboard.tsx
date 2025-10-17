@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { Card } from './ui/Card';
 import { Button } from './ui/Button';
 import { Badge } from './ui/Badge';
-import { IoTDeviceRegistration } from './IoTDeviceRegistration';
 import { LoadingPage } from './Loading';
 
 interface IoTDevice {
@@ -76,9 +75,6 @@ export function DeviceManagementDashboard({
     fetchDevices();
   }, []);
 
-  const handleDeviceRegistered = (newDevice: IoTDevice) => {
-    setDevices(prev => [newDevice, ...prev]);
-  };
 
   const filteredDevices = devices.filter(
     device => filter === 'ALL' || device.deviceType === filter
@@ -162,16 +158,16 @@ export function DeviceManagementDashboard({
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
-      <div className='flex justify-between items-center'>
-        <div>
-          <h2 className='text-2xl font-bold text-gray-900'>
-            IoT Device Management
-          </h2>
-          <p className='text-gray-600'>
-            Manage your SEQUESTER and EMITTER devices
-          </p>
-        </div>
-        <IoTDeviceRegistration onDeviceRegistered={handleDeviceRegistered} />
+      <div className='text-center'>
+        <h2 className='text-2xl font-bold text-gray-900'>
+          IoT Device Management
+        </h2>
+        <p className='text-gray-600'>
+          Manage your SEQUESTER and EMITTER devices
+        </p>
+        <p className='text-sm text-blue-600 mt-2'>
+          💡 Devices are automatically registered when MQTT data is received
+        </p>
       </div>
 
       {/* Stats */}
@@ -296,8 +292,8 @@ export function DeviceManagementDashboard({
             <h3 className='text-lg font-medium mb-2'>No devices found</h3>
             <p className='text-sm'>
               {filter === 'ALL'
-                ? 'Register your first IoT device to get started.'
-                : `No ${filter} devices found. Try changing the filter or register a new device.`}
+                ? 'No devices found. Devices will be automatically registered when MQTT data is received.'
+                : `No ${filter} devices found. Try changing the filter or wait for devices to be auto-registered from MQTT data.`}
             </p>
           </div>
         </Card>
