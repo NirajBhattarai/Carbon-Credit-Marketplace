@@ -7,6 +7,7 @@ The Carbon Credit Marketplace automatically sends all MQTT IoT data to InfluxDB 
 ## 📊 How It Works
 
 ### 1. MQTT Message Flow
+
 ```
 MQTT Topic → API Key Extraction → Wallet Address Lookup → InfluxDB Storage
 ```
@@ -14,9 +15,11 @@ MQTT Topic → API Key Extraction → Wallet Address Lookup → InfluxDB Storage
 ### 2. Data Structure in InfluxDB
 
 #### Sensor Data Measurement (`sensor_data`)
+
 **Primary Key**: `wallet_address` (most important for carbon credit tracking)
 
 **Tags**:
+
 - `wallet_address`: User's wallet address (PRIMARY KEY)
 - `device_id`: Device identifier
 - `device_type`: SEQUESTER or EMITTER
@@ -26,6 +29,7 @@ MQTT Topic → API Key Extraction → Wallet Address Lookup → InfluxDB Storage
 - `mac`: Device MAC address
 
 **Fields**:
+
 - `co2`: CO2 reading (ppm)
 - `humidity`: Humidity percentage
 - `credits`: Carbon credits generated/consumed
@@ -33,9 +37,11 @@ MQTT Topic → API Key Extraction → Wallet Address Lookup → InfluxDB Storage
 - `offset`: Offset status (boolean)
 
 #### Device Events Measurement (`device_events`)
+
 **Primary Key**: `wallet_address` (for tracking user device connections)
 
 **Tags**:
+
 - `wallet_address`: User's wallet address (PRIMARY KEY)
 - `device_id`: Device identifier
 - `device_type`: Device type
@@ -43,6 +49,7 @@ MQTT Topic → API Key Extraction → Wallet Address Lookup → InfluxDB Storage
 - `event`: Event type (connected, disconnected, error)
 
 **Fields**:
+
 - `error`: Error message (if applicable)
 
 ## 🔄 Automatic Data Flow
@@ -50,20 +57,23 @@ MQTT Topic → API Key Extraction → Wallet Address Lookup → InfluxDB Storage
 ### When MQTT Message is Received:
 
 1. **Topic Parsing**: Extract API key from MQTT topic
+
    ```
    Topic: carbon_sequester/cc_dfd123.../sensor_data
    API Key: cc_dfd123...
    ```
 
 2. **Wallet Lookup**: Query database to get wallet address
+
    ```sql
-   SELECT users.walletAddress 
-   FROM applications 
-   JOIN users ON applications.userId = users.id 
+   SELECT users.walletAddress
+   FROM applications
+   JOIN users ON applications.userId = users.id
    WHERE applications.apiKey = 'cc_dfd123...'
    ```
 
 3. **Data Enrichment**: Add wallet address to sensor data
+
    ```json
    {
      "device_id": "DEVICE_001",
@@ -82,16 +92,19 @@ MQTT Topic → API Key Extraction → Wallet Address Lookup → InfluxDB Storage
 ## 🎯 Benefits of Wallet Address Keys
 
 ### 1. **User-Centric Tracking**
+
 - All carbon credit data is linked to specific wallet addresses
 - Easy to query all data for a specific user
 - Proper attribution for carbon credit generation
 
 ### 2. **Carbon Credit Accounting**
+
 - Track total credits generated per wallet
 - Monitor emission offsets per user
 - Calculate user-specific carbon footprints
 
 ### 3. **Data Integrity**
+
 - Wallet addresses are immutable identifiers
 - No confusion between different users
 - Reliable data attribution
@@ -99,6 +112,7 @@ MQTT Topic → API Key Extraction → Wallet Address Lookup → InfluxDB Storage
 ## 📈 Querying Data by Wallet Address
 
 ### 1. API Queries
+
 ```bash
 # Get all data for a specific wallet
 curl "http://localhost:3000/api/timeseries/query?walletAddress=0x1234...5678&startTime=-24h"
@@ -108,6 +122,7 @@ curl "http://localhost:3000/api/timeseries/stats?walletAddress=0x1234...5678&per
 ```
 
 ### 2. InfluxDB Flux Queries
+
 ```flux
 // All sensor data for a specific wallet
 from(bucket: "mqtt-data")
@@ -125,6 +140,7 @@ from(bucket: "mqtt-data")
 ```
 
 ### 3. Command Line Tool
+
 ```bash
 # View data for specific wallet
 ./view-timeseries.js --query --wallet 0x1234...5678
@@ -136,18 +152,21 @@ from(bucket: "mqtt-data")
 ## 🔍 Monitoring and Verification
 
 ### 1. Check Data Flow
+
 ```bash
 # Test MQTT to InfluxDB integration
 ./test-mqtt-influxdb.js
 ```
 
 ### 2. Verify Wallet Address Keys
+
 ```bash
 # Check if wallet addresses are being used as keys
 curl "http://localhost:3000/api/timeseries/query?startTime=-1h" | jq '.data[].walletAddress'
 ```
 
 ### 3. Monitor Logs
+
 ```bash
 # Check MQTT context logs
 docker-compose -f docker-compose.timeseries.yml logs mosquitto
@@ -159,16 +178,19 @@ docker-compose -f docker-compose.timeseries.yml logs influxdb
 ## 🚨 Troubleshooting
 
 ### No Wallet Addresses in Data
+
 1. **Check API Key Lookup**: Verify `/api/mqtt/wallet-address` endpoint
 2. **Check Database**: Ensure `applications` and `users` tables have data
 3. **Check MQTT Topics**: Verify topics contain valid API keys
 
 ### Data Not Appearing in InfluxDB
+
 1. **Check InfluxDB Connection**: Verify InfluxDB is running
 2. **Check MQTT Connection**: Ensure MQTT broker is accessible
 3. **Check Logs**: Look for error messages in console
 
 ### Slow Data Processing
+
 1. **Check Database Performance**: Monitor PostgreSQL queries
 2. **Check InfluxDB Performance**: Monitor write operations
 3. **Check Network**: Verify MQTT broker connectivity
@@ -176,6 +198,7 @@ docker-compose -f docker-compose.timeseries.yml logs influxdb
 ## 📊 Data Examples
 
 ### Sample Sensor Data Point
+
 ```json
 {
   "wallet_address": "0x1234567890abcdef1234567890abcdef12345678",
@@ -195,6 +218,7 @@ docker-compose -f docker-compose.timeseries.yml logs influxdb
 ```
 
 ### Sample Connection Event
+
 ```json
 {
   "wallet_address": "0x1234567890abcdef1234567890abcdef12345678",

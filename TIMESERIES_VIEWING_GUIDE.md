@@ -5,12 +5,14 @@ There are several ways to view and analyze your MQTT time-series data stored in 
 ## 1. 🌐 InfluxDB Web UI (Easiest)
 
 ### Access the Web Interface
+
 1. Open your browser and go to: **http://localhost:8086**
 2. Login with:
    - **Username**: admin
    - **Password**: carboncredit123
 
 ### Navigate to Data Explorer
+
 1. Click on **"Data Explorer"** in the left sidebar
 2. Select your bucket: **mqtt-data**
 3. Choose measurement: **sensor_data**
@@ -18,6 +20,7 @@ There are several ways to view and analyze your MQTT time-series data stored in 
 ### Sample Queries to Try
 
 #### View All Recent Data
+
 ```flux
 from(bucket: "mqtt-data")
   |> range(start: -1h)
@@ -27,6 +30,7 @@ from(bucket: "mqtt-data")
 ```
 
 #### CO2 Levels Over Time
+
 ```flux
 from(bucket: "mqtt-data")
   |> range(start: -24h)
@@ -36,6 +40,7 @@ from(bucket: "mqtt-data")
 ```
 
 #### Device Statistics
+
 ```flux
 from(bucket: "mqtt-data")
   |> range(start: -24h)
@@ -48,6 +53,7 @@ from(bucket: "mqtt-data")
 ## 2. 🔌 API Endpoints (Programmatic Access)
 
 ### Query Raw Data
+
 ```bash
 # Get all data from last 24 hours
 curl "http://localhost:3000/api/timeseries/query?startTime=-24h&limit=100"
@@ -63,6 +69,7 @@ curl "http://localhost:3000/api/timeseries/query?walletAddress=0x1234...5678&sta
 ```
 
 ### Get Device Statistics
+
 ```bash
 # Device statistics for last 24 hours
 curl "http://localhost:3000/api/timeseries/stats?deviceId=DEVICE_001&period=24h"
@@ -77,11 +84,13 @@ curl "http://localhost:3000/api/timeseries/stats?walletAddress=0x1234...5678&per
 ## 3. 🌐 Web Dashboard (Built-in)
 
 ### Access the Dashboard
+
 1. Start your Next.js development server: `npm run dev`
 2. Navigate to: **http://localhost:3000/timeseries**
 3. Use the built-in filters and controls to explore your data
 
 ### Features
+
 - **Raw Data View**: See individual sensor readings with timestamps
 - **Statistics View**: View aggregated statistics (min, max, average)
 - **Time Range Filtering**: Choose from 1 hour to 30 days
@@ -91,6 +100,7 @@ curl "http://localhost:3000/api/timeseries/stats?walletAddress=0x1234...5678&per
 ## 4. 💻 Command Line Tool
 
 ### Install and Use
+
 ```bash
 # Make the script executable
 chmod +x view-timeseries.js
@@ -112,8 +122,9 @@ chmod +x view-timeseries.js
 ```
 
 ### Command Options
+
 - `--query, -q`: View raw time-series data
-- `--stats, -s`: View device statistics  
+- `--stats, -s`: View device statistics
 - `--device, -d <id>`: Filter by device ID
 - `--time, -t <range>`: Time range (1h, 6h, 24h, 7d, 30d)
 - `--limit, -l <number>`: Limit number of records
@@ -122,6 +133,7 @@ chmod +x view-timeseries.js
 ## 5. 🔧 Direct Database Access
 
 ### Using InfluxDB CLI
+
 ```bash
 # Access InfluxDB CLI container
 docker exec -it carbon-credit-influxdb-cli influx
@@ -137,6 +149,7 @@ from(bucket: "mqtt-data")
 ```
 
 ### Using curl with InfluxDB API
+
 ```bash
 # Query data using InfluxDB HTTP API
 curl -X POST "http://localhost:8086/api/v2/query" \
@@ -148,12 +161,14 @@ curl -X POST "http://localhost:8086/api/v2/query" \
 ## 6. 📊 Data Export Options
 
 ### Export to CSV
+
 ```bash
 # Use the command-line tool to export data
 ./view-timeseries.js --query --time 7d > data-export.csv
 ```
 
 ### Export via API
+
 ```bash
 # Get JSON data for processing
 curl "http://localhost:3000/api/timeseries/query?startTime=-7d&limit=1000" > data.json
@@ -162,6 +177,7 @@ curl "http://localhost:3000/api/timeseries/query?startTime=-7d&limit=1000" > dat
 ## 7. 🎯 Common Use Cases
 
 ### Monitor Device Health
+
 ```bash
 # Check if devices are sending data
 ./view-timeseries.js --stats --time 1h
@@ -171,6 +187,7 @@ curl "http://localhost:3000/api/timeseries/query?startTime=-7d&limit=1000" > dat
 ```
 
 ### Analyze Carbon Credits
+
 ```bash
 # View credit generation over time
 ./view-timeseries.js --query --time 7d | grep "Credits"
@@ -180,6 +197,7 @@ curl "http://localhost:3000/api/timeseries/query?startTime=-7d&limit=1000" > dat
 ```
 
 ### Debug MQTT Issues
+
 ```bash
 # Check recent connection events
 curl "http://localhost:3000/api/timeseries/query?measurement=device_events&startTime=-1h"
@@ -191,18 +209,21 @@ curl "http://localhost:3000/api/timeseries/query?measurement=device_events&start
 ## 8. 🔍 Troubleshooting
 
 ### No Data Showing
+
 1. **Check Docker services**: `docker-compose -f docker-compose.timeseries.yml ps`
 2. **Verify MQTT messages**: Check browser console for MQTT connection
 3. **Check InfluxDB logs**: `docker-compose -f docker-compose.timeseries.yml logs influxdb`
 4. **Test API endpoints**: `curl http://localhost:3000/api/timeseries/query`
 
 ### Slow Queries
+
 1. **Reduce time range**: Use shorter periods (1h instead of 7d)
 2. **Add filters**: Filter by device ID or type
 3. **Limit results**: Use `--limit` parameter
 4. **Check data volume**: Large datasets take longer to process
 
 ### Connection Issues
+
 1. **Verify services**: Ensure InfluxDB and MQTT broker are running
 2. **Check ports**: Verify ports 8086, 1883, 9001 are accessible
 3. **Network issues**: Check Docker network configuration
@@ -211,6 +232,7 @@ curl "http://localhost:3000/api/timeseries/query?measurement=device_events&start
 ## 9. 📈 Advanced Queries
 
 ### Custom Flux Queries in InfluxDB UI
+
 ```flux
 // Average CO2 levels by device type
 from(bucket: "mqtt-data")

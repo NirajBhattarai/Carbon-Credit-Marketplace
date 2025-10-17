@@ -1,5 +1,5 @@
-import { DeveloperDashboard } from '@/components/DeveloperDashboard'
+import { DeveloperDashboard } from '@/components/DeveloperDashboard';
 
 export default function DeveloperDashboardPage() {
-  return <DeveloperDashboard />
+  return <DeveloperDashboard />;
 }

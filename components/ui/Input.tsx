@@ -1,36 +1,39 @@
-import { InputHTMLAttributes, forwardRef } from 'react'
-import { cn } from '@/lib/utils'
+import { InputHTMLAttributes, forwardRef } from 'react';
+import { cn } from '@/lib/utils';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string
-  error?: string
-  helperText?: string
-  leftIcon?: React.ReactNode
-  rightIcon?: React.ReactNode
+  label?: string;
+  error?: string;
+  helperText?: string;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
 const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ 
-    className, 
-    type = 'text',
-    label,
-    error,
-    helperText,
-    leftIcon,
-    rightIcon,
-    ...props 
-  }, ref) => {
+  (
+    {
+      className,
+      type = 'text',
+      label,
+      error,
+      helperText,
+      leftIcon,
+      rightIcon,
+      ...props
+    },
+    ref
+  ) => {
     return (
-      <div className="w-full">
+      <div className='w-full'>
         {label && (
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className='block text-sm font-medium text-gray-700 mb-2'>
             {label}
           </label>
         )}
-        <div className="relative">
+        <div className='relative'>
           {leftIcon && (
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-400">{leftIcon}</span>
+            <div className='absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none'>
+              <span className='text-gray-400'>{leftIcon}</span>
             </div>
           )}
           <input
@@ -46,22 +49,20 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightIcon && (
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-              <span className="text-gray-400">{rightIcon}</span>
+            <div className='absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none'>
+              <span className='text-gray-400'>{rightIcon}</span>
             </div>
           )}
         </div>
-        {error && (
-          <p className="mt-1 text-sm text-red-600">{error}</p>
-        )}
+        {error && <p className='mt-1 text-sm text-red-600'>{error}</p>}
         {helperText && !error && (
-          <p className="mt-1 text-sm text-gray-500">{helperText}</p>
+          <p className='mt-1 text-sm text-gray-500'>{helperText}</p>
         )}
       </div>
-    )
+    );
   }
-)
+);
 
-Input.displayName = 'Input'
+Input.displayName = 'Input';
 
-export { Input }
+export { Input };

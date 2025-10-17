@@ -11,11 +11,13 @@ This guide explains how to set up and manage the database for the Carbon Credit 
 ## Environment Setup
 
 1. Copy the environment example file:
+
 ```bash
 cp .env.example .env
 ```
 
 2. Update the `.env` file with your database credentials:
+
 ```env
 DATABASE_URL="postgresql://username:password@localhost:5432/carbon_credit_iot"
 JWT_SECRET="your-super-secret-jwt-key-change-in-production"
@@ -27,6 +29,7 @@ JWT_EXPIRES_IN="7d"
 The database includes the following tables:
 
 ### Core Tables
+
 - **users** - User accounts with wallet addresses and roles
 - **applications** - Developer applications for API access
 - **apiKeys** - API keys for application authentication
@@ -35,6 +38,7 @@ The database includes the following tables:
 - **carbonCreditTransactions** - Carbon credit minting/burning transactions
 
 ### Enums
+
 - **user_role** - USER, DEVELOPER, ADMIN
 - **application_status** - ACTIVE, INACTIVE, SUSPENDED
 - **api_key_status** - ACTIVE, INACTIVE, REVOKED
@@ -45,38 +49,49 @@ The database includes the following tables:
 ## Available Commands
 
 ### Generate Migration Files
+
 ```bash
 npm run db:generate
 ```
+
 This creates migration files based on schema changes in `lib/db/schema.ts`.
 
 ### Push Schema to Database
+
 ```bash
 npm run db:push
 ```
+
 This pushes the schema directly to the database without creating migration files.
 
 ### Run Migrations
+
 ```bash
 npm run db:migrate
 ```
+
 This runs pending migrations against the database.
 
 ### Open Drizzle Studio
+
 ```bash
 npm run db:studio
 ```
+
 This opens a web interface to view and manage your database.
 
 ### Seed Database
+
 ```bash
 npm run db:seed
 ```
+
 This populates the database with sample data.
 
 ## Database Setup Steps
 
 ### 1. Initial Setup
+
 ```bash
 # Install dependencies
 npm install
@@ -89,11 +104,13 @@ npm run db:push
 ```
 
 ### 2. Seed Sample Data
+
 ```bash
 npm run db:seed
 ```
 
 ### 3. Verify Setup
+
 ```bash
 # Open Drizzle Studio to verify tables
 npm run db:studio
@@ -104,6 +121,7 @@ npm run db:studio
 When you modify the schema in `lib/db/schema.ts`:
 
 1. **Generate migration**:
+
    ```bash
    npm run db:generate
    ```
@@ -132,6 +150,7 @@ When you modify the schema in `lib/db/schema.ts`:
    - Check database exists
 
 ### Reset Database
+
 ```bash
 # Drop and recreate database
 dropdb carbon_credit_iot
@@ -166,6 +185,7 @@ The database is integrated with the following API endpoints:
 ## Support
 
 For issues related to:
+
 - **Drizzle ORM**: Check [Drizzle Documentation](https://orm.drizzle.team/)
 - **PostgreSQL**: Check [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - **This Project**: Check the main README.md file

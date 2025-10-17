@@ -8,15 +8,15 @@ export const APP_CONFIG = {
   url: 'https://ecotrade.io',
   supportEmail: 'support@ecotrade.io',
   twitter: '@EcoTradeIO',
-  discord: 'discord.gg/ecotrade'
-} as const
+  discord: 'discord.gg/ecotrade',
+} as const;
 
 // API Configuration
 export const API_CONFIG = {
   baseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
   timeout: 10000,
-  retries: 3
-} as const
+  retries: 3,
+} as const;
 
 // Blockchain Configuration
 export const BLOCKCHAIN_CONFIG = {
@@ -25,23 +25,23 @@ export const BLOCKCHAIN_CONFIG = {
       chainId: 1,
       name: 'Ethereum Mainnet',
       rpcUrl: 'https://mainnet.infura.io/v3/YOUR_PROJECT_ID',
-      explorerUrl: 'https://etherscan.io'
+      explorerUrl: 'https://etherscan.io',
     },
     polygon: {
       chainId: 137,
       name: 'Polygon',
       rpcUrl: 'https://polygon-rpc.com',
-      explorerUrl: 'https://polygonscan.com'
+      explorerUrl: 'https://polygonscan.com',
     },
     arbitrum: {
       chainId: 42161,
       name: 'Arbitrum One',
       rpcUrl: 'https://arb1.arbitrum.io/rpc',
-      explorerUrl: 'https://arbiscan.io'
-    }
+      explorerUrl: 'https://arbiscan.io',
+    },
   },
-  defaultNetwork: 'ethereum'
-} as const
+  defaultNetwork: 'ethereum',
+} as const;
 
 // Token Configuration
 export const TOKEN_CONFIG = {
@@ -51,7 +51,7 @@ export const TOKEN_CONFIG = {
     address: '0xA0b86a33E6441b8c4C8C0E1234567890abcdef12',
     decimals: 6,
     icon: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png',
-    color: '#2775CA'
+    color: '#2775CA',
   },
   ECO: {
     symbol: 'ECO',
@@ -60,7 +60,7 @@ export const TOKEN_CONFIG = {
     decimals: 18,
     icon: '🌿',
     color: '#10B981',
-    description: 'Verified Carbon Credit Token'
+    description: 'Verified Carbon Credit Token',
   },
   ETH: {
     symbol: 'ETH',
@@ -68,7 +68,7 @@ export const TOKEN_CONFIG = {
     address: '0xC2d88a33E6441b8c4C8C0E1234567890abcdef56',
     decimals: 18,
     icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
-    color: '#627EEA'
+    color: '#627EEA',
   },
   WETH: {
     symbol: 'WETH',
@@ -76,9 +76,9 @@ export const TOKEN_CONFIG = {
     address: '0xD3d88a33E6441b8c4C8C0E1234567890abcdef78',
     decimals: 18,
     icon: 'https://cryptologos.cc/logos/ethereum-eth-logo.png',
-    color: '#627EEA'
-  }
-} as const
+    color: '#627EEA',
+  },
+} as const;
 
 // Swap Configuration
 export const SWAP_CONFIG = {
@@ -89,15 +89,15 @@ export const SWAP_CONFIG = {
   maxDeadline: 4320, // 3 days in minutes
   minDeadline: 1,
   priceImpactWarning: 5,
-  priceImpactError: 10
-} as const
+  priceImpactError: 10,
+} as const;
 
 // Pagination Configuration
 export const PAGINATION_CONFIG = {
   defaultPageSize: 20,
   pageSizeOptions: [10, 20, 50, 100],
-  maxPageSize: 100
-} as const
+  maxPageSize: 100,
+} as const;
 
 // Filter Configuration
 export const FILTER_CONFIG = {
@@ -106,7 +106,7 @@ export const FILTER_CONFIG = {
     { label: '$10 - $50', value: [10, 50] },
     { label: '$50 - $100', value: [50, 100] },
     { label: '$100 - $500', value: [100, 500] },
-    { label: 'Over $500', value: [500, Infinity] }
+    { label: 'Over $500', value: [500, Infinity] },
   ],
   sortOptions: [
     { label: 'Price: Low to High', value: { field: 'price', order: 'asc' } },
@@ -114,9 +114,9 @@ export const FILTER_CONFIG = {
     { label: 'Newest First', value: { field: 'createdAt', order: 'desc' } },
     { label: 'Oldest First', value: { field: 'createdAt', order: 'asc' } },
     { label: 'Most Credits', value: { field: 'totalCredits', order: 'desc' } },
-    { label: 'Least Credits', value: { field: 'totalCredits', order: 'asc' } }
-  ]
-} as const
+    { label: 'Least Credits', value: { field: 'totalCredits', order: 'asc' } },
+  ],
+} as const;
 
 // Design System Configuration
 export const DESIGN_SYSTEM = {
@@ -132,7 +132,7 @@ export const DESIGN_SYSTEM = {
       700: '#15803d',
       800: '#166534',
       900: '#14532d',
-      950: '#052e16'
+      950: '#052e16',
     },
     secondary: {
       50: '#f0f9ff',
@@ -145,7 +145,7 @@ export const DESIGN_SYSTEM = {
       700: '#0369a1',
       800: '#075985',
       900: '#0c4a6e',
-      950: '#082f49'
+      950: '#082f49',
     },
     accent: {
       50: '#fefce8',
@@ -158,7 +158,7 @@ export const DESIGN_SYSTEM = {
       700: '#a16207',
       800: '#854d0e',
       900: '#713f12',
-      950: '#422006'
+      950: '#422006',
     },
     neutral: {
       50: '#fafafa',
@@ -171,17 +171,17 @@ export const DESIGN_SYSTEM = {
       700: '#404040',
       800: '#262626',
       900: '#171717',
-      950: '#0a0a0a'
+      950: '#0a0a0a',
     },
     success: '#10B981',
     warning: '#F59E0B',
     error: '#EF4444',
-    info: '#3B82F6'
+    info: '#3B82F6',
   },
   typography: {
     fontFamily: {
       sans: ['Inter', 'system-ui', 'sans-serif'],
-      mono: ['JetBrains Mono', 'monospace']
+      mono: ['JetBrains Mono', 'monospace'],
     },
     fontSize: {
       xs: '0.75rem',
@@ -193,15 +193,15 @@ export const DESIGN_SYSTEM = {
       '3xl': '1.875rem',
       '4xl': '2.25rem',
       '5xl': '3rem',
-      '6xl': '3.75rem'
+      '6xl': '3.75rem',
     },
     fontWeight: {
       normal: '400',
       medium: '500',
       semibold: '600',
       bold: '700',
-      extrabold: '800'
-    }
+      extrabold: '800',
+    },
   },
   spacing: {
     0: '0',
@@ -217,7 +217,7 @@ export const DESIGN_SYSTEM = {
     16: '4rem',
     20: '5rem',
     24: '6rem',
-    32: '8rem'
+    32: '8rem',
   },
   borderRadius: {
     none: '0',
@@ -228,7 +228,7 @@ export const DESIGN_SYSTEM = {
     xl: '0.75rem',
     '2xl': '1rem',
     '3xl': '1.5rem',
-    full: '9999px'
+    full: '9999px',
   },
   shadows: {
     sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
@@ -236,9 +236,9 @@ export const DESIGN_SYSTEM = {
     md: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
     lg: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
     xl: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
-    '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)'
-  }
-} as const
+    '2xl': '0 25px 50px -12px rgb(0 0 0 / 0.25)',
+  },
+} as const;
 
 // UI Configuration
 export const UI_CONFIG = {
@@ -247,19 +247,19 @@ export const UI_CONFIG = {
     md: '768px',
     lg: '1024px',
     xl: '1280px',
-    '2xl': '1536px'
+    '2xl': '1536px',
   },
   animations: {
     duration: {
       fast: '150ms',
       normal: '300ms',
-      slow: '500ms'
+      slow: '500ms',
     },
     easing: {
       easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
       easeOut: 'cubic-bezier(0, 0, 0.2, 1)',
-      easeIn: 'cubic-bezier(0.4, 0, 1, 1)'
-    }
+      easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
+    },
   },
   zIndex: {
     dropdown: 1000,
@@ -268,9 +268,9 @@ export const UI_CONFIG = {
     modalBackdrop: 1040,
     modal: 1050,
     popover: 1060,
-    tooltip: 1070
-  }
-} as const
+    tooltip: 1070,
+  },
+} as const;
 
 // Error Messages
 export const ERROR_MESSAGES = {
@@ -281,8 +281,8 @@ export const ERROR_MESSAGES = {
   INVALID_INPUT: 'Please check your input and try again',
   UNAUTHORIZED: 'You are not authorized to perform this action',
   NOT_FOUND: 'The requested resource was not found',
-  SERVER_ERROR: 'Server error. Please try again later'
-} as const
+  SERVER_ERROR: 'Server error. Please try again later',
+} as const;
 
 // Success Messages
 export const SUCCESS_MESSAGES = {
@@ -290,56 +290,56 @@ export const SUCCESS_MESSAGES = {
   TRANSACTION_SUCCESS: 'Transaction completed successfully',
   LISTING_CREATED: 'Listing created successfully',
   PURCHASE_SUCCESS: 'Purchase completed successfully',
-  SETTINGS_SAVED: 'Settings saved successfully'
-} as const
+  SETTINGS_SAVED: 'Settings saved successfully',
+} as const;
 
 // Validation Rules
 export const VALIDATION_RULES = {
   price: {
     min: 0.001,
     max: 1000000,
-    step: 0.001
+    step: 0.001,
   },
   amount: {
     min: 0.000001,
     max: 1000000,
-    step: 0.000001
+    step: 0.000001,
   },
   slippage: {
     min: 0.1,
     max: 50,
-    step: 0.1
+    step: 0.1,
   },
   deadline: {
     min: 1,
     max: 4320,
-    step: 1
-  }
-} as const
+    step: 1,
+  },
+} as const;
 
 // Carbon Credit Standards
 export const CARBON_STANDARDS = {
   VCS: {
     name: 'Verified Carbon Standard',
-    description: 'The world\'s most widely used voluntary GHG program',
-    website: 'https://verra.org'
+    description: "The world's most widely used voluntary GHG program",
+    website: 'https://verra.org',
   },
   GOLD_STANDARD: {
     name: 'Gold Standard',
     description: 'Premium standard for climate and development interventions',
-    website: 'https://www.goldstandard.org'
+    website: 'https://www.goldstandard.org',
   },
   CLIMATE_ACTION_RESERVE: {
     name: 'Climate Action Reserve',
     description: 'North American carbon offset registry',
-    website: 'https://www.climateactionreserve.org'
+    website: 'https://www.climateactionreserve.org',
   },
   AMERICAN_CARBON_REGISTRY: {
     name: 'American Carbon Registry',
     description: 'Leading carbon offset program in North America',
-    website: 'https://americancarbonregistry.org'
-  }
-} as const
+    website: 'https://americancarbonregistry.org',
+  },
+} as const;
 
 // Project Types
 export const PROJECT_TYPES = {
@@ -347,33 +347,33 @@ export const PROJECT_TYPES = {
     name: 'Forest Conservation',
     description: 'Protecting and restoring forest ecosystems',
     icon: '🌲',
-    color: 'green'
+    color: 'green',
   },
   RENEWABLE_ENERGY: {
     name: 'Renewable Energy',
     description: 'Solar, wind, and hydroelectric projects',
     icon: '⚡',
-    color: 'blue'
+    color: 'blue',
   },
   OCEAN_RESTORATION: {
     name: 'Ocean Restoration',
     description: 'Marine conservation and blue carbon projects',
     icon: '🌊',
-    color: 'cyan'
+    color: 'cyan',
   },
   CARBON_CAPTURE: {
     name: 'Carbon Capture',
     description: 'Direct air capture and storage technologies',
     icon: '🌱',
-    color: 'emerald'
+    color: 'emerald',
   },
   WILDLIFE_CONSERVATION: {
     name: 'Wildlife Conservation',
     description: 'Biodiversity protection and habitat restoration',
     icon: '🦋',
-    color: 'purple'
-  }
-} as const
+    color: 'purple',
+  },
+} as const;
 
 // Rarity Configuration
 export const RARITY_CONFIG = {
@@ -382,27 +382,27 @@ export const RARITY_CONFIG = {
     color: 'gray',
     icon: '✨',
     probability: 0.6,
-    multiplier: 1
+    multiplier: 1,
   },
   RARE: {
     name: 'Rare',
     color: 'blue',
     icon: '🔮',
     probability: 0.25,
-    multiplier: 1.5
+    multiplier: 1.5,
   },
   EPIC: {
     name: 'Epic',
     color: 'purple',
     icon: '💎',
     probability: 0.12,
-    multiplier: 2
+    multiplier: 2,
   },
   LEGENDARY: {
     name: 'Legendary',
     color: 'yellow',
     icon: '⭐',
     probability: 0.03,
-    multiplier: 3
-  }
-} as const
+    multiplier: 3,
+  },
+} as const;

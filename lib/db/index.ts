@@ -1,19 +1,19 @@
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from './schema'
-import { eq, desc, and, or, asc, sql } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
+import * as schema from './schema';
+import { eq, desc, and, or, asc, sql } from 'drizzle-orm';
 
 // Create the connection
-const connectionString = process.env.DATABASE_URL!
+const connectionString = process.env.DATABASE_URL!;
 
 // Disable prefetch as it is not supported for "Transaction" pool mode
 // Remove schema parameter from connection string if present
-const cleanConnectionString = connectionString.replace(/\?schema=.*$/, '')
-const client = postgres(cleanConnectionString, { prepare: false })
-export const db = drizzle(client, { schema })
+const cleanConnectionString = connectionString.replace(/\?schema=.*$/, '');
+const client = postgres(cleanConnectionString, { prepare: false });
+export const db = drizzle(client, { schema });
 
 // Export schema for use in other files
-export * from './schema'
+export * from './schema';
 
 // Export drizzle-orm functions
-export { eq, desc, and, or, asc, sql }
+export { eq, desc, and, or, asc, sql };

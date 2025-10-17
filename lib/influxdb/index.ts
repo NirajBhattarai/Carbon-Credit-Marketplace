@@ -1,4 +1,4 @@
-import { InfluxDB, Point, WriteApi } from '@influxdata/influxdb-client'
+import { InfluxDB, Point, WriteApi } from '@influxdata/influxdb-client';
 
 // InfluxDB Configuration
 const INFLUX_CONFIG = {
@@ -6,11 +6,11 @@ const INFLUX_CONFIG = {
   token: process.env.INFLUXDB_TOKEN || 'carbon-credit-token-123',
   org: process.env.INFLUXDB_ORG || 'carbon-credit-org',
   bucket: process.env.INFLUXDB_BUCKET || 'mqtt-data',
-}
+};
 
 // InfluxDB client instance
-let influxDB: InfluxDB | null = null
-let writeApi: WriteApi | null = null
+let influxDB: InfluxDB | null = null;
+let writeApi: WriteApi | null = null;
 
 /**
  * Initialize InfluxDB connection
@@ -20,15 +20,15 @@ export function initializeInfluxDB(): boolean {
     influxDB = new InfluxDB({
       url: INFLUX_CONFIG.url,
       token: INFLUX_CONFIG.token,
-    })
+    });
 
-    writeApi = influxDB.getWriteApi(INFLUX_CONFIG.org, INFLUX_CONFIG.bucket)
-    
-    console.log('✅ InfluxDB initialized successfully')
-    return true
+    writeApi = influxDB.getWriteApi(INFLUX_CONFIG.org, INFLUX_CONFIG.bucket);
+
+    console.log('✅ InfluxDB initialized successfully');
+    return true;
   } catch (error) {
-    console.error('❌ Failed to initialize InfluxDB:', error)
-    return false
+    console.error('❌ Failed to initialize InfluxDB:', error);
+    return false;
   }
 }
 
@@ -36,29 +36,29 @@ export function initializeInfluxDB(): boolean {
  * Write MQTT sensor data to InfluxDB with wallet address as primary key
  */
 export async function writeSensorData(data: {
-  deviceId: string
-  deviceType: 'SEQUESTER' | 'EMITTER'
-  apiKey?: string
-  walletAddress?: string
-  co2: number
-  humidity: number
-  credits: number
-  emissions: number
-  offset: boolean
-  timestamp: number
-  location?: string
-  ip?: string
-  mac?: string
+  deviceId: string;
+  deviceType: 'SEQUESTER' | 'EMITTER';
+  apiKey?: string;
+  walletAddress?: string;
+  co2: number;
+  humidity: number;
+  credits: number;
+  emissions: number;
+  offset: boolean;
+  timestamp: number;
+  location?: string;
+  ip?: string;
+  mac?: string;
 }): Promise<boolean> {
   if (!writeApi) {
-    console.error('❌ InfluxDB not initialized - cannot write sensor data')
-    return false
+    console.error('❌ InfluxDB not initialized - cannot write sensor data');
+    return false;
   }
 
   try {
     // Use wallet address as primary identifier, fallback to device ID
-    const primaryKey = data.walletAddress || data.deviceId || 'unknown'
-    
+    const primaryKey = data.walletAddress || data.deviceId || 'unknown';
+
     // Create a data point with wallet address as the primary key
     const point = new Point('sensor_data')
       // Primary key: wallet address (most important for carbon credit tracking)
@@ -75,25 +75,29 @@ export async function writeSensorData(data: {
       .floatField('credits', data.credits)
       .floatField('emissions', data.emissions)
       .booleanField('offset', data.offset)
-      .timestamp(new Date(data.timestamp))
+      .timestamp(new Date(data.timestamp));
 
     // Write the point to InfluxDB
-    writeApi.writePoint(point)
-    
+    writeApi.writePoint(point);
+
     // Flush to ensure data is written immediately
-    await writeApi.flush()
-    
-    console.log(`✅ Sensor data written to InfluxDB with wallet key: ${data.walletAddress ? data.walletAddress.slice(0, 6) + '...' + data.walletAddress.slice(-4) : 'unknown'} (device: ${data.deviceId})`)
-    return true
+    await writeApi.flush();
+
+    console.log(
+      `✅ Sensor data written to InfluxDB with wallet key: ${data.walletAddress ? data.walletAddress.slice(0, 6) + '...' + data.walletAddress.slice(-4) : 'unknown'} (device: ${data.deviceId})`
+    );
+    return true;
   } catch (error) {
-    console.error('❌ Failed to write sensor data to InfluxDB:', error)
+    console.error('❌ Failed to write sensor data to InfluxDB:', error);
     console.error('Data details:', {
       deviceId: data.deviceId,
-      walletAddress: data.walletAddress ? data.walletAddress.slice(0, 6) + '...' + data.walletAddress.slice(-4) : 'unknown',
+      walletAddress: data.walletAddress
+        ? data.walletAddress.slice(0, 6) + '...' + data.walletAddress.slice(-4)
+        : 'unknown',
       deviceType: data.deviceType,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    })
-    return false
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return false;
   }
 }
 
@@ -101,17 +105,19 @@ export async function writeSensorData(data: {
  * Write device connection events to InfluxDB with wallet address as primary key
  */
 export async function writeConnectionEvent(data: {
-  deviceId: string
-  deviceType: 'SEQUESTER' | 'EMITTER'
-  apiKey?: string
-  walletAddress?: string
-  event: 'connected' | 'disconnected' | 'error'
-  timestamp: number
-  error?: string
+  deviceId: string;
+  deviceType: 'SEQUESTER' | 'EMITTER';
+  apiKey?: string;
+  walletAddress?: string;
+  event: 'connected' | 'disconnected' | 'error';
+  timestamp: number;
+  error?: string;
 }): Promise<boolean> {
   if (!writeApi) {
-    console.error('❌ InfluxDB not initialized - cannot write connection event')
-    return false
+    console.error(
+      '❌ InfluxDB not initialized - cannot write connection event'
+    );
+    return false;
   }
 
   try {
@@ -124,22 +130,26 @@ export async function writeConnectionEvent(data: {
       .tag('api_key', data.apiKey || 'unknown')
       .tag('event', data.event)
       .stringField('error', data.error || '')
-      .timestamp(new Date(data.timestamp))
+      .timestamp(new Date(data.timestamp));
 
-    writeApi.writePoint(point)
-    await writeApi.flush()
-    
-    console.log(`✅ Connection event written to InfluxDB with wallet key: ${data.walletAddress ? data.walletAddress.slice(0, 6) + '...' + data.walletAddress.slice(-4) : 'unknown'} - ${data.event} (device: ${data.deviceId})`)
-    return true
+    writeApi.writePoint(point);
+    await writeApi.flush();
+
+    console.log(
+      `✅ Connection event written to InfluxDB with wallet key: ${data.walletAddress ? data.walletAddress.slice(0, 6) + '...' + data.walletAddress.slice(-4) : 'unknown'} - ${data.event} (device: ${data.deviceId})`
+    );
+    return true;
   } catch (error) {
-    console.error('❌ Failed to write connection event to InfluxDB:', error)
+    console.error('❌ Failed to write connection event to InfluxDB:', error);
     console.error('Event details:', {
       deviceId: data.deviceId,
-      walletAddress: data.walletAddress ? data.walletAddress.slice(0, 6) + '...' + data.walletAddress.slice(-4) : 'unknown',
+      walletAddress: data.walletAddress
+        ? data.walletAddress.slice(0, 6) + '...' + data.walletAddress.slice(-4)
+        : 'unknown',
       event: data.event,
-      error: error instanceof Error ? error.message : 'Unknown error'
-    })
-    return false
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+    return false;
   }
 }
 
@@ -148,18 +158,18 @@ export async function writeConnectionEvent(data: {
  */
 export function closeInfluxDB(): void {
   if (writeApi) {
-    writeApi.close()
-    writeApi = null
+    writeApi.close();
+    writeApi = null;
   }
-  influxDB = null
-  console.log('🔌 InfluxDB connection closed')
+  influxDB = null;
+  console.log('🔌 InfluxDB connection closed');
 }
 
 /**
  * Get InfluxDB client for custom queries
  */
 export function getInfluxDBClient(): InfluxDB | null {
-  return influxDB
+  return influxDB;
 }
 
-export { INFLUX_CONFIG }
+export { INFLUX_CONFIG };

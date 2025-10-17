@@ -64,11 +64,13 @@ Once running, your IoT API will be available at:
 ### Accessing the Database
 
 **Via pgAdmin (Web UI)**:
+
 - URL: http://localhost:8080
 - Email: admin@carboncredit.com
 - Password: admin123
 
 **Via Command Line**:
+
 ```bash
 # Connect to PostgreSQL
 docker exec -it carbon-credit-postgres psql -U postgres -d carbon_credit_iot
@@ -167,15 +169,17 @@ const char* deviceType = "CREATOR"; // or "BURNER"
 ### Common Issues
 
 1. **Database Connection Failed**
+
    ```bash
    # Check if PostgreSQL is running
    docker-compose ps
-   
+
    # Check logs
    docker-compose logs postgres
    ```
 
 2. **Port Already in Use**
+
    ```bash
    # Change ports in docker-compose.yml
    # Or stop conflicting services
@@ -183,16 +187,18 @@ const char* deviceType = "CREATOR"; // or "BURNER"
    ```
 
 3. **Drizzle Client Not Generated**
+
    ```bash
    # Regenerate Drizzle client
    npm run db:generate
    ```
 
 4. **API Not Responding**
+
    ```bash
    # Check if Next.js is running
    curl http://localhost:3000/api/iot/health
-   
+
    # Check logs
    npm run dev
    ```

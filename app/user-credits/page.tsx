@@ -1,5 +1,5 @@
-import { UserCreditsDashboard } from '@/components/UserCreditsDashboard'
+import { UserCreditsDashboard } from '@/components/UserCreditsDashboard';
 
 export default function UserCreditsPage() {
-  return <UserCreditsDashboard />
+  return <UserCreditsDashboard />;
 }

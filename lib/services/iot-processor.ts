@@ -1,24 +1,31 @@
-import { db, userCarbonCredits, userCreditHistory, deviceData, iotDevices } from '../db'
-import { eq, desc } from 'drizzle-orm'
-import { RedisService } from '../redis'
+import {
+  db,
+  userCarbonCredits,
+  userCreditHistory,
+  deviceData,
+  iotDevices,
+} from '../db';
+import { eq, desc } from 'drizzle-orm';
+import { RedisService } from '../redis';
+import { CacheInvalidator } from '../cache/CacheInvalidator';
 
 export interface IoTDataPayload {
-  c: number // credits
-  h: number // humidity
-  cr: number // co2 reduced
-  e: number // energy saved
-  o: boolean // online status
-  t: number // timestamp
+  c: number; // credits
+  h: number; // humidity
+  cr: number; // co2 reduced
+  e: number; // energy saved
+  o: boolean; // online status
+  t: number; // timestamp
 }
 
 export interface ProcessedIoTData {
-  credits: number
-  co2Reduced: number
-  energySaved: number
-  temperatureImpact: number
-  humidityImpact: number
-  isOnline: boolean
-  timestamp: string
+  credits: number;
+  co2Reduced: number;
+  energySaved: number;
+  temperatureImpact: number;
+  humidityImpact: number;
+  isOnline: boolean;
+  timestamp: string;
 }
 
 /**
@@ -40,10 +47,10 @@ export class IoTDataProcessor {
           .select({ applicationId: iotDevices.applicationId })
           .from(iotDevices)
           .where(eq(iotDevices.deviceId, deviceId))
-          .limit(1)
+          .limit(1);
 
         if (device.length === 0) {
-          throw new Error(`Device ${deviceId} not found`)
+          throw new Error(`Device ${deviceId} not found`);
         }
 
         // Get user from application
@@ -51,11 +58,11 @@ export class IoTDataProcessor {
           .select({ userId: iotDevices.applicationId })
           .from(iotDevices)
           .where(eq(iotDevices.deviceId, deviceId))
-          .limit(1)
+          .limit(1);
 
-        userId = application[0]?.userId
+        userId = application[0]?.userId;
         if (!userId) {
-          throw new Error(`User not found for device ${deviceId}`)
+          throw new Error(`User not found for device ${deviceId}`);
         }
       }
 
@@ -68,27 +75,32 @@ export class IoTDataProcessor {
         humidityImpact: payload.h,
         isOnline: payload.o,
         timestamp: new Date(payload.t * 1000).toISOString(),
-      }
+      };
 
       // Calculate temperature impact based on humidity (example calculation)
-      processedData.temperatureImpact = this.calculateTemperatureImpact(payload.h)
+      processedData.temperatureImpact = this.calculateTemperatureImpact(
+        payload.h
+      );
 
       // Update user credits in database
-      await this.updateUserCredits(userId, processedData)
+      await this.updateUserCredits(userId, processedData);
 
       // Add to credit history
-      await this.addCreditHistory(userId, processedData, deviceId)
+      await this.addCreditHistory(userId, processedData, deviceId);
 
       // Update Redis cache
-      await this.updateRedisCache(userId, processedData)
+      await this.updateRedisCache(userId, processedData);
 
       // Store device data
-      await this.storeDeviceData(deviceId, payload)
+      await this.storeDeviceData(deviceId, payload);
 
-      return processedData
+      // Invalidate relevant caches
+      await CacheInvalidator.invalidateIoTDataCaches(userId, deviceId);
+
+      return processedData;
     } catch (error) {
-      console.error('Error processing IoT data:', error)
-      throw error
+      console.error('Error processing IoT data:', error);
+      throw error;
     }
   }
 
@@ -105,7 +117,7 @@ export class IoTDataProcessor {
       .from(userCarbonCredits)
       .where(eq(userCarbonCredits.userId, userId))
       .orderBy(desc(userCarbonCredits.updatedAt))
-      .limit(1)
+      .limit(1);
 
     const currentData = currentCredits[0] || {
       credits: '0',
@@ -114,14 +126,17 @@ export class IoTDataProcessor {
       temperatureImpact: '0',
       humidityImpact: '0',
       isOnline: false,
-    }
+    };
 
     // Calculate new totals
-    const newCredits = parseFloat(currentData.credits) + data.credits
-    const newCo2Reduced = parseFloat(currentData.co2Reduced) + data.co2Reduced
-    const newEnergySaved = parseFloat(currentData.energySaved) + data.energySaved
-    const newTemperatureImpact = parseFloat(currentData.temperatureImpact) + data.temperatureImpact
-    const newHumidityImpact = parseFloat(currentData.humidityImpact) + data.humidityImpact
+    const newCredits = parseFloat(currentData.credits) + data.credits;
+    const newCo2Reduced = parseFloat(currentData.co2Reduced) + data.co2Reduced;
+    const newEnergySaved =
+      parseFloat(currentData.energySaved) + data.energySaved;
+    const newTemperatureImpact =
+      parseFloat(currentData.temperatureImpact) + data.temperatureImpact;
+    const newHumidityImpact =
+      parseFloat(currentData.humidityImpact) + data.humidityImpact;
 
     // Insert new credit record
     await db.insert(userCarbonCredits).values({
@@ -132,7 +147,7 @@ export class IoTDataProcessor {
       temperatureImpact: newTemperatureImpact.toString(),
       humidityImpact: newHumidityImpact.toString(),
       isOnline: data.isOnline,
-    })
+    });
   }
 
   /**
@@ -156,7 +171,7 @@ export class IoTDataProcessor {
         deviceId,
         timestamp: data.timestamp,
       },
-    })
+    });
   }
 
   /**
@@ -172,10 +187,10 @@ export class IoTDataProcessor {
       .from(userCarbonCredits)
       .where(eq(userCarbonCredits.userId, userId))
       .orderBy(desc(userCarbonCredits.updatedAt))
-      .limit(1)
+      .limit(1);
 
     if (currentCredits.length > 0) {
-      const creditsData = currentCredits[0]
+      const creditsData = currentCredits[0];
       const cacheData = {
         credits: parseFloat(creditsData.credits),
         co2Reduced: parseFloat(creditsData.co2Reduced),
@@ -184,10 +199,10 @@ export class IoTDataProcessor {
         humidityImpact: parseFloat(creditsData.humidityImpact),
         isOnline: creditsData.isOnline,
         timestamp: creditsData.timestamp.toISOString(),
-      }
+      };
 
-      await RedisService.cacheUserCredits(userId, cacheData)
-      await RedisService.updateLeaderboard(userId, cacheData.credits)
+      await RedisService.cacheUserCredits(userId, cacheData);
+      await RedisService.updateLeaderboard(userId, cacheData.credits);
     }
 
     // Add to Redis history
@@ -200,10 +215,10 @@ export class IoTDataProcessor {
       source: 'IOT_DEVICE',
       sourceId: deviceId,
       timestamp: data.timestamp,
-    })
+    });
 
     // Invalidate dashboard cache
-    await RedisService.invalidateUserCache(userId)
+    await RedisService.invalidateUserCache(userId);
   }
 
   /**
@@ -222,7 +237,7 @@ export class IoTDataProcessor {
       humidity: payload.h.toString(),
       dataHash: this.generateDataHash(payload),
       verified: true,
-    })
+    });
   }
 
   /**
@@ -231,15 +246,15 @@ export class IoTDataProcessor {
   private static calculateTemperatureImpact(humidity: number): number {
     // Example calculation: higher humidity = lower temperature impact
     // This is a simplified model - adjust based on your requirements
-    return Math.max(0, (100 - humidity) * 0.1)
+    return Math.max(0, (100 - humidity) * 0.1);
   }
 
   /**
    * Generate data hash for verification
    */
   private static generateDataHash(payload: IoTDataPayload): string {
-    const dataString = `${payload.c}-${payload.h}-${payload.cr}-${payload.e}-${payload.o}-${payload.t}`
-    return Buffer.from(dataString).toString('base64')
+    const dataString = `${payload.c}-${payload.h}-${payload.cr}-${payload.e}-${payload.o}-${payload.t}`;
+    return Buffer.from(dataString).toString('base64');
   }
 
   /**
@@ -250,18 +265,18 @@ export class IoTDataProcessor {
     payloads: IoTDataPayload[],
     userId?: string
   ): Promise<ProcessedIoTData[]> {
-    const results: ProcessedIoTData[] = []
+    const results: ProcessedIoTData[] = [];
 
     for (const payload of payloads) {
       try {
-        const result = await this.processIoTData(deviceId, payload, userId)
-        results.push(result)
+        const result = await this.processIoTData(deviceId, payload, userId);
+        results.push(result);
       } catch (error) {
-        console.error(`Error processing payload ${payload.t}:`, error)
+        console.error(`Error processing payload ${payload.t}:`, error);
         // Continue processing other payloads
       }
     }
 
-    return results
+    return results;
   }
 }

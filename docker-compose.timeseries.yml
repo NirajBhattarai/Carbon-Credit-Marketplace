@@ -7,7 +7,7 @@ services:
     container_name: carbon-credit-influxdb
     restart: unless-stopped
     ports:
-      - "8086:8086"
+      - '8086:8086'
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=setup
       - DOCKER_INFLUXDB_INIT_USERNAME=admin
@@ -25,7 +25,7 @@ services:
   influxdb-cli:
     image: influxdb:2.7-cli
     container_name: carbon-credit-influxdb-cli
-    restart: "no"
+    restart: 'no'
     depends_on:
       - influxdb
     environment:
@@ -42,8 +42,8 @@ services:
     container_name: carbon-credit-mosquitto
     restart: unless-stopped
     ports:
-      - "1883:1883"
-      - "9001:9001"
+      - '1883:1883'
+      - '9001:9001'
     volumes:
       - ./mosquitto/config:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data

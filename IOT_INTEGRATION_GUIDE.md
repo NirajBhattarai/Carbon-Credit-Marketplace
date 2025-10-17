@@ -94,12 +94,14 @@ npm run dev
 ## 📊 Device Types
 
 ### Carbon Credit Creator Devices
+
 - **Purpose**: Monitor CO2 reduction activities
 - **Sensors**: CO2 reduction, renewable energy generation
 - **Action**: Mint carbon credits when thresholds are reached
 - **Examples**: Solar panels, wind turbines, carbon capture systems
 
 ### Carbon Credit Burner Devices
+
 - **Purpose**: Monitor CO2 emission activities
 - **Sensors**: CO2 emissions, energy consumption
 - **Action**: Burn carbon credits to offset emissions
@@ -112,15 +114,15 @@ npm run dev
 ```typescript
 // Default thresholds (configurable per device)
 const CREATOR_THRESHOLDS = {
-  co2Threshold: 1000,    // CO2 reduction units
+  co2Threshold: 1000, // CO2 reduction units
   energyThreshold: 500, // Energy generation units
-  timeWindow: 3600,     // 1 hour in seconds
+  timeWindow: 3600, // 1 hour in seconds
 };
 
 const BURNER_THRESHOLDS = {
-  co2Threshold: 1000,   // CO2 emission units
+  co2Threshold: 1000, // CO2 emission units
   energyThreshold: 500, // Energy consumption units
-  timeWindow: 3600,     // 1 hour in seconds
+  timeWindow: 3600, // 1 hour in seconds
 };
 ```
 
@@ -143,16 +145,19 @@ const CREDIT_RATES = {
 ## 📡 API Endpoints
 
 ### Device Management
+
 - `POST /iot/devices` - Register new device
 - `GET /iot/devices` - Get all devices
 - `GET /iot/devices/:deviceId` - Get device status
 - `PUT /iot/devices/:deviceId/thresholds` - Update thresholds
 
 ### Data Collection
+
 - `POST /iot/data` - Receive IoT sensor data
 - `GET /iot/devices/:deviceId/data` - Get historical data
 
 ### Blockchain Integration
+
 - `POST /blockchain/mint` - Process mint requests
 - `POST /blockchain/burn` - Process burn requests
 - `GET /blockchain/status/:txHash` - Check transaction status
@@ -160,16 +165,19 @@ const CREDIT_RATES = {
 ## 🔒 Security Features
 
 ### Device Authentication
+
 - Device ID validation
 - API key authentication
 - Data integrity verification
 
 ### Data Verification
+
 - SHA-256 data hashing
 - Timestamp validation
 - Sensor reading validation
 
 ### Smart Contract Security
+
 - Multi-signature requirements
 - Time-locked operations
 - Emergency pause functionality
@@ -177,12 +185,14 @@ const CREDIT_RATES = {
 ## 📈 Monitoring & Analytics
 
 ### Real-time Metrics
+
 - Device connection status
 - Data transmission rates
 - Threshold achievement rates
 - Credit minting/burning volumes
 
 ### Historical Data
+
 - Sensor data trends
 - Credit transaction history
 - Device performance metrics
@@ -215,6 +225,7 @@ const CREDIT_RATES = {
 ### Debug Mode
 
 Enable debug logging in Arduino code:
+
 ```cpp
 #define DEBUG_MODE true
 
@@ -226,12 +237,14 @@ if (DEBUG_MODE) {
 ## 🔄 Maintenance
 
 ### Regular Tasks
+
 - Monitor device health
 - Update threshold configurations
 - Process pending transactions
 - Backup device data
 
 ### Updates
+
 - Firmware updates for IoT devices
 - Smart contract upgrades
 - API version updates
@@ -247,6 +260,7 @@ if (DEBUG_MODE) {
 ## 🤝 Support
 
 For technical support and questions:
+
 - Create an issue in the GitHub repository
 - Check the troubleshooting section
 - Review the API documentation
