@@ -25,8 +25,7 @@ carbon-credit-marketplace/
 │   ├── components/          # React components
 │   │   ├── ui/              # Base UI components
 │   │   ├── layout/          # Layout components
-│   │   ├── DeviceManagementDashboard.tsx # IoT device management
-│   │   └── RealTimeDashboard.tsx # Real-time data visualization
+│   │   └── DeviceManagementDashboard.tsx # IoT device management
 │   ├── lib/                 # Utilities and configurations
 │   │   ├── db/              # Database schema
 │   │   ├── types.ts         # TypeScript definitions

@@ -24,7 +24,6 @@ interface NavigationItem {
 const navigationItems: NavigationItem[] = [
   { name: 'IoT Devices', href: '/iot-devices', icon: '📱' },
   { name: 'IoT Data', href: '/iot-data', icon: '📊' },
-  { name: 'Time-Series', href: '/timeseries', icon: '📈' },
   { name: 'User Credits', href: '/user-credits', icon: '🏆' },
   {
     name: 'Agent Ecosystem',

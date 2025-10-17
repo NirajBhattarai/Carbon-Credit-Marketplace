@@ -73,7 +73,7 @@ export function InfluxDBProvider({ children }: InfluxDBProviderProps) {
       setConnectionState('connecting');
 
       const response = await fetch(
-        '/api/timeseries/query?limit=100&startTime=-1h'
+        '/api/iot/data?limit=100&startTime=-1h'
       );
 
       if (!response.ok) {

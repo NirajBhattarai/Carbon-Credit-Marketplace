@@ -15,8 +15,6 @@ export const REDIS_KEYS = {
   GLOBAL_STATS: 'global:stats',
   // New caching keys for optimization
   AGGREGATED_USER_CREDITS: 'aggregated:user-credits',
-  TIMESERIES_QUERY: (params: string) => `timeseries:query:${params}`,
-  TIMESERIES_STATS: (params: string) => `timeseries:stats:${params}`,
   WALLET_ADDRESS: (apiKey: string) => `wallet:address:${apiKey}`,
   DEVICE_STATUS: (deviceId: string) => `device:status:${deviceId}`,
   DEVICE_LIST: 'devices:list',
@@ -310,59 +308,6 @@ export class RedisService {
     }
   }
 
-  /**
-   * Cache timeseries query results
-   */
-  static async cacheTimeseriesQuery(params: string, data: any): Promise<void> {
-    const key = REDIS_KEYS.TIMESERIES_QUERY(params);
-    await redis.setex(key, 180, JSON.stringify(data)); // 3 minutes cache
-  }
-
-  /**
-   * Get timeseries query from cache
-   */
-  static async getTimeseriesQuery(params: string): Promise<any | null> {
-    const key = REDIS_KEYS.TIMESERIES_QUERY(params);
-    const data = await redis.get(key);
-
-    if (!data) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(data);
-    } catch (error) {
-      console.error('Error parsing timeseries query from Redis:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Cache timeseries stats results
-   */
-  static async cacheTimeseriesStats(params: string, data: any): Promise<void> {
-    const key = REDIS_KEYS.TIMESERIES_STATS(params);
-    await redis.setex(key, 300, JSON.stringify(data)); // 5 minutes cache
-  }
-
-  /**
-   * Get timeseries stats from cache
-   */
-  static async getTimeseriesStats(params: string): Promise<any | null> {
-    const key = REDIS_KEYS.TIMESERIES_STATS(params);
-    const data = await redis.get(key);
-
-    if (!data) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(data);
-    } catch (error) {
-      console.error('Error parsing timeseries stats from Redis:', error);
-      return null;
-    }
-  }
 
   /**
    * Cache wallet address lookup by API key
@@ -508,16 +453,6 @@ export class RedisService {
     }
   }
 
-  /**
-   * Invalidate timeseries cache
-   */
-  static async invalidateTimeseriesCache(): Promise<void> {
-    const pattern = 'timeseries:*';
-    const keys = await redis.keys(pattern);
-    if (keys.length > 0) {
-      await redis.del(...keys);
-    }
-  }
 
   /**
    * Invalidate device cache

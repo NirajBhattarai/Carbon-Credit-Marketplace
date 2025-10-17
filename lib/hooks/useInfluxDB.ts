@@ -62,7 +62,7 @@ export interface InfluxDBStats {
 }
 
 /**
- * Custom hook for fetching InfluxDB timeseries data
+ * Custom hook for fetching InfluxDB IoT data
  */
 export function useInfluxDBQuery(params: InfluxDBQueryParams = {}) {
   const [data, setData] = useState<InfluxDBDataPoint[]>([]);
@@ -105,7 +105,7 @@ export function useInfluxDBQuery(params: InfluxDBQueryParams = {}) {
         queryParams.append('measurement', memoizedParams.measurement);
 
       const response = await fetch(
-        `/api/timeseries/query?${queryParams.toString()}`
+        `/api/iot/data?${queryParams.toString()}`
       );
 
       if (!response.ok) {
@@ -180,7 +180,7 @@ export function useInfluxDBStats(params: InfluxDBQueryParams = {}) {
         queryParams.append('endTime', memoizedParams.endTime);
 
       const response = await fetch(
-        `/api/timeseries/stats?${queryParams.toString()}`
+        `/api/iot/data?${queryParams.toString()}`
       );
 
       if (!response.ok) {
@@ -263,7 +263,7 @@ export function useInfluxDBRealtime(
         queryParams.append('measurement', memoizedParams.measurement);
 
       const response = await fetch(
-        `/api/timeseries/query?${queryParams.toString()}`
+        `/api/iot/data?${queryParams.toString()}`
       );
 
       if (!response.ok) {
