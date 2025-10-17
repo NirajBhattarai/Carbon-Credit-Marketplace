@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { db, applications, users } from '@/lib/db';
+import { db, applications, users, apiKeys } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { RedisService } from '../../../lib/redis';
 
@@ -40,9 +40,10 @@ export default async function handler(
         applicationId: applications.id,
         userId: users.id,
       })
-      .from(applications)
+      .from(apiKeys)
+      .innerJoin(applications, eq(apiKeys.applicationId, applications.id))
       .innerJoin(users, eq(applications.userId, users.id))
-      .where(eq(applications.apiKey, apiKey))
+      .where(eq(apiKeys.keyHash, apiKey))
       .limit(1);
 
     if (result.length === 0) {

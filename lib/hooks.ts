@@ -231,4 +231,3 @@ export function useFilters<T>(
     clearFilter,
   };
 }
-

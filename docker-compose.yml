@@ -1,6 +1,5 @@
-version: '3.8'
-
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: carbon-credit-postgres
@@ -23,6 +22,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: carbon-credit-redis
@@ -39,6 +39,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # pgAdmin Database Management
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: carbon-credit-pgadmin
@@ -56,12 +57,77 @@ services:
     depends_on:
       - postgres
 
+  # InfluxDB Time-Series Database
+  influxdb:
+    image: influxdb:2.7
+    container_name: carbon-credit-influxdb
+    restart: unless-stopped
+    ports:
+      - '8086:8086'
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=carboncredit123
+      - DOCKER_INFLUXDB_INIT_ORG=carbon-credit-org
+      - DOCKER_INFLUXDB_INIT_BUCKET=mqtt-data
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=carbon-credit-token-123
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    networks:
+      - carbon-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8086/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # InfluxDB CLI (for management)
+  influxdb-cli:
+    image: influxdb:2.7-cli
+    container_name: carbon-credit-influxdb-cli
+    restart: 'no'
+    depends_on:
+      - influxdb
+    environment:
+      - INFLUX_HOST=http://influxdb:8086
+      - INFLUX_TOKEN=carbon-credit-token-123
+    networks:
+      - carbon-network
+    profiles:
+      - tools
+
+  # MQTT Broker
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: carbon-credit-mosquitto
+    restart: unless-stopped
+    ports:
+      - '1883:1883'
+      - '9001:9001'
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
+    networks:
+      - carbon-network
+    healthcheck:
+      test:
+        ['CMD', 'mosquitto_pub', '-h', 'localhost', '-t', 'test', '-m', 'test']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
   pgadmin_data:
+    driver: local
+  influxdb_data:
+    driver: local
+  influxdb_config:
     driver: local
 
 networks:

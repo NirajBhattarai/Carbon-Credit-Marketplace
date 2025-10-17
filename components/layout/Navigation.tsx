@@ -22,7 +22,12 @@ const navigationItems: NavigationItem[] = [
   { name: 'IoT Data', href: '/iot-data', icon: '📊' },
   { name: 'Time-Series', href: '/timeseries', icon: '📈' },
   { name: 'User Credits', href: '/user-credits', icon: '🏆' },
-  { name: 'Agent Ecosystem', href: '/agent-ecosystem', icon: '🤖', badge: 'NEW' },
+  {
+    name: 'Agent Ecosystem',
+    href: '/agent-ecosystem',
+    icon: '🤖',
+    badge: 'NEW',
+  },
   { name: 'Developer', href: '/developer', icon: '⚙️' },
   { name: 'Analytics', href: '/charts', icon: '📊' },
 ];
@@ -37,10 +42,15 @@ export function Navigation() {
       <div className='max-w-7xl mx-auto px-3 sm:px-4 lg:px-8'>
         <div className='flex justify-between items-center h-14 sm:h-16 lg:h-18'>
           {/* Logo */}
-          <Link href='/' className='flex items-center space-x-2 sm:space-x-3 group flex-shrink-0 hover:scale-105 transition-transform duration-300'>
+          <Link
+            href='/'
+            className='flex items-center space-x-2 sm:space-x-3 group flex-shrink-0 hover:scale-105 transition-transform duration-300'
+          >
             <div className='relative'>
               <div className='w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-emerald-500 via-green-500 to-teal-600 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl group-hover:shadow-emerald-200 transition-all duration-300 group-hover:scale-110'>
-                <span className='text-white font-bold text-sm sm:text-lg lg:text-xl group-hover:animate-pulse'>🌿</span>
+                <span className='text-white font-bold text-sm sm:text-lg lg:text-xl group-hover:animate-pulse'>
+                  🌿
+                </span>
               </div>
               <div className='absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r from-emerald-400 to-green-400 rounded-full animate-pulse shadow-md'></div>
               {/* Glow effect */}
@@ -64,8 +74,12 @@ export function Navigation() {
                 href={item.href}
                 className='relative group flex items-center space-x-1.5 px-3 py-2.5 rounded-xl text-gray-600 hover:text-emerald-600 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 font-medium transition-all duration-300 hover:shadow-lg hover:shadow-emerald-100 hover:-translate-y-1'
               >
-                <span className='text-base group-hover:scale-110 transition-transform duration-300'>{item.icon}</span>
-                <span className='text-xs whitespace-nowrap group-hover:font-semibold transition-all duration-300'>{item.name}</span>
+                <span className='text-base group-hover:scale-110 transition-transform duration-300'>
+                  {item.icon}
+                </span>
+                <span className='text-xs whitespace-nowrap group-hover:font-semibold transition-all duration-300'>
+                  {item.name}
+                </span>
                 {item.badge && (
                   <span className='absolute -top-1 -right-1 px-1.5 py-0.5 text-xs font-bold text-white bg-gradient-to-r from-emerald-500 to-green-500 rounded-full animate-pulse shadow-lg'>
                     {item.badge}
@@ -140,8 +154,12 @@ export function Navigation() {
                   className='group flex items-center space-x-4 px-4 py-4 text-gray-600 hover:text-emerald-600 hover:bg-gradient-to-r hover:from-emerald-50 hover:to-green-50 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-emerald-100 hover:-translate-y-1'
                   onClick={() => setIsMenuOpen(false)}
                 >
-                  <span className='text-xl group-hover:scale-110 transition-transform duration-300'>{item.icon}</span>
-                  <span className='font-medium text-base sm:text-lg group-hover:font-semibold transition-all duration-300'>{item.name}</span>
+                  <span className='text-xl group-hover:scale-110 transition-transform duration-300'>
+                    {item.icon}
+                  </span>
+                  <span className='font-medium text-base sm:text-lg group-hover:font-semibold transition-all duration-300'>
+                    {item.name}
+                  </span>
                   {item.badge && (
                     <span className='ml-auto px-3 py-1.5 text-sm font-bold text-white bg-gradient-to-r from-emerald-500 to-green-500 rounded-full shadow-md'>
                       {item.badge}

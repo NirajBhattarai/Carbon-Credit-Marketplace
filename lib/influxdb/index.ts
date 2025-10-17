@@ -49,33 +49,114 @@ export async function writeSensorData(data: {
   location?: string;
   ip?: string;
   mac?: string;
+  // New format fields
+  avgCo2?: number;
+  maxCo2?: number;
+  minCo2?: number;
+  avgHumidity?: number;
+  maxHumidity?: number;
+  minHumidity?: number;
+  samples?: number;
+  creditsAvailable?: number;
 }): Promise<boolean> {
   if (!writeApi) {
     console.error('❌ InfluxDB not initialized - cannot write sensor data');
     return false;
   }
 
+  // Validate and sanitize numeric fields
+  const sanitizedData = {
+    ...data,
+    co2: typeof data.co2 === 'number' && !isNaN(data.co2) ? data.co2 : 0,
+    humidity:
+      typeof data.humidity === 'number' && !isNaN(data.humidity)
+        ? data.humidity
+        : 0,
+    credits:
+      typeof data.credits === 'number' && !isNaN(data.credits)
+        ? data.credits
+        : 0,
+    emissions:
+      typeof data.emissions === 'number' && !isNaN(data.emissions)
+        ? data.emissions
+        : 0,
+    offset: typeof data.offset === 'boolean' ? data.offset : false,
+    // New format fields
+    avgCo2:
+      typeof data.avgCo2 === 'number' && !isNaN(data.avgCo2)
+        ? data.avgCo2
+        : undefined,
+    maxCo2:
+      typeof data.maxCo2 === 'number' && !isNaN(data.maxCo2)
+        ? data.maxCo2
+        : undefined,
+    minCo2:
+      typeof data.minCo2 === 'number' && !isNaN(data.minCo2)
+        ? data.minCo2
+        : undefined,
+    avgHumidity:
+      typeof data.avgHumidity === 'number' && !isNaN(data.avgHumidity)
+        ? data.avgHumidity
+        : undefined,
+    maxHumidity:
+      typeof data.maxHumidity === 'number' && !isNaN(data.maxHumidity)
+        ? data.maxHumidity
+        : undefined,
+    minHumidity:
+      typeof data.minHumidity === 'number' && !isNaN(data.minHumidity)
+        ? data.minHumidity
+        : undefined,
+    samples:
+      typeof data.samples === 'number' && !isNaN(data.samples)
+        ? data.samples
+        : undefined,
+    creditsAvailable:
+      typeof data.creditsAvailable === 'number' && !isNaN(data.creditsAvailable)
+        ? data.creditsAvailable
+        : undefined,
+  };
+
   try {
     // Use wallet address as primary identifier, fallback to device ID
-    const primaryKey = data.walletAddress || data.deviceId || 'unknown';
+    const primaryKey =
+      sanitizedData.walletAddress || sanitizedData.deviceId || 'unknown';
 
     // Create a data point with wallet address as the primary key
     const point = new Point('sensor_data')
       // Primary key: wallet address (most important for carbon credit tracking)
-      .tag('wallet_address', data.walletAddress || 'unknown')
-      .tag('device_id', data.deviceId)
-      .tag('device_type', data.deviceType)
-      .tag('api_key', data.apiKey || 'unknown')
-      .tag('location', data.location || 'unknown')
-      .tag('ip', data.ip || 'unknown')
-      .tag('mac', data.mac || 'unknown')
-      // Sensor data fields
-      .floatField('co2', data.co2)
-      .floatField('humidity', data.humidity)
-      .floatField('credits', data.credits)
-      .floatField('emissions', data.emissions)
-      .booleanField('offset', data.offset)
-      .timestamp(new Date(data.timestamp));
+      .tag('wallet_address', sanitizedData.walletAddress || 'unknown')
+      .tag('device_id', sanitizedData.deviceId)
+      .tag('device_type', sanitizedData.deviceType)
+      .tag('api_key', sanitizedData.apiKey || 'unknown')
+      .tag('location', sanitizedData.location || 'unknown')
+      .tag('ip', sanitizedData.ip || 'unknown')
+      .tag('mac', sanitizedData.mac || 'unknown')
+      // Core sensor data fields - using sanitized values
+      .floatField('co2', sanitizedData.co2)
+      .floatField('humidity', sanitizedData.humidity)
+      .floatField('credits', sanitizedData.credits)
+      .floatField('emissions', sanitizedData.emissions)
+      .booleanField('offset', sanitizedData.offset)
+      // New format fields (only add if they exist)
+      .timestamp(new Date(sanitizedData.timestamp));
+
+    // Add new format fields only if they exist
+    if (sanitizedData.avgCo2 !== undefined)
+      point.floatField('avg_co2', sanitizedData.avgCo2);
+    if (sanitizedData.maxCo2 !== undefined)
+      point.floatField('max_co2', sanitizedData.maxCo2);
+    if (sanitizedData.minCo2 !== undefined)
+      point.floatField('min_co2', sanitizedData.minCo2);
+    if (sanitizedData.avgHumidity !== undefined)
+      point.floatField('avg_humidity', sanitizedData.avgHumidity);
+    if (sanitizedData.maxHumidity !== undefined)
+      point.floatField('max_humidity', sanitizedData.maxHumidity);
+    if (sanitizedData.minHumidity !== undefined)
+      point.floatField('min_humidity', sanitizedData.minHumidity);
+    if (sanitizedData.samples !== undefined)
+      point.intField('samples', sanitizedData.samples);
+    if (sanitizedData.creditsAvailable !== undefined)
+      point.floatField('credits_available', sanitizedData.creditsAvailable);
 
     // Write the point to InfluxDB
     writeApi.writePoint(point);
@@ -97,6 +178,102 @@ export async function writeSensorData(data: {
       deviceType: data.deviceType,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
+    return false;
+  }
+}
+
+/**
+ * Write heartbeat data to InfluxDB
+ */
+export async function writeHeartbeatData(data: {
+  deviceId: string;
+  deviceType: 'SEQUESTER' | 'EMITTER';
+  apiKey?: string;
+  walletAddress?: string;
+  status: string;
+  uptime: number;
+  rssi: number;
+  timestamp: number;
+  ip?: string;
+  mac?: string;
+}): Promise<boolean> {
+  if (!writeApi) {
+    console.error('❌ InfluxDB not initialized - cannot write heartbeat data');
+    return false;
+  }
+
+  try {
+    const point = new Point('device_events')
+      .tag('wallet_address', data.walletAddress || 'unknown')
+      .tag('device_id', data.deviceId)
+      .tag('device_type', data.deviceType)
+      .tag('api_key', data.apiKey || 'unknown')
+      .tag('event', 'heartbeat')
+      .tag('ip', data.ip || 'unknown')
+      .tag('mac', data.mac || 'unknown')
+      .stringField('status', data.status)
+      .intField('uptime', data.uptime)
+      .intField('rssi', data.rssi)
+      .timestamp(new Date(data.timestamp));
+
+    writeApi.writePoint(point);
+    await writeApi.flush();
+
+    console.log(
+      `✅ Heartbeat data written to InfluxDB for device: ${data.deviceId}`
+    );
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to write heartbeat data to InfluxDB:', error);
+    return false;
+  }
+}
+
+/**
+ * Write alert data to InfluxDB
+ */
+export async function writeAlertData(data: {
+  deviceId: string;
+  deviceType: 'SEQUESTER' | 'EMITTER';
+  apiKey?: string;
+  walletAddress?: string;
+  alertType: string;
+  message: string;
+  co2: number;
+  credits: number;
+  timestamp: number;
+  ip?: string;
+  mac?: string;
+}): Promise<boolean> {
+  if (!writeApi) {
+    console.error('❌ InfluxDB not initialized - cannot write alert data');
+    return false;
+  }
+
+  try {
+    const point = new Point('device_events')
+      .tag('wallet_address', data.walletAddress || 'unknown')
+      .tag('device_id', data.deviceId)
+      .tag('device_type', data.deviceType)
+      .tag('api_key', data.apiKey || 'unknown')
+      .tag('event', 'alert')
+      .tag('alert_type', data.alertType)
+      .tag('ip', data.ip || 'unknown')
+      .tag('mac', data.mac || 'unknown')
+      .stringField('message', data.message)
+      .floatField('co2', data.co2)
+      .floatField('credits', data.credits)
+      .timestamp(new Date(data.timestamp));
+
+    writeApi.writePoint(point);
+    await writeApi.flush();
+
+    console.log(
+      `✅ Alert data written to InfluxDB for device: ${data.deviceId}`
+    );
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to write alert data to InfluxDB:', error);
     return false;
   }
 }

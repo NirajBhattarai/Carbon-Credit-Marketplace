@@ -38,7 +38,8 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
   };
 
   // Get CO2 level color based on value
-  const getCO2LevelColor = (co2: number) => {
+  const getCO2LevelColor = (co2: number | undefined) => {
+    if (!co2) return 'text-gray-600';
     if (co2 < 400) return 'text-green-600';
     if (co2 < 800) return 'text-yellow-600';
     if (co2 < 1200) return 'text-orange-600';
@@ -46,7 +47,8 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
   };
 
   // Get CO2 level description
-  const getCO2LevelDescription = (co2: number) => {
+  const getCO2LevelDescription = (co2: number | undefined) => {
+    if (!co2) return 'No Data';
     if (co2 < 400) return 'Excellent';
     if (co2 < 800) return 'Good';
     if (co2 < 1200) return 'Moderate';
@@ -171,12 +173,12 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
               <span className='text-sm text-gray-600'>CO₂</span>
             </div>
             <div
-              className={`text-lg font-semibold ${getCO2LevelColor(data.c)}`}
+              className={`text-lg font-semibold ${getCO2LevelColor(data.avg_c || data.c)}`}
             >
-              {data.c} ppm
+              {(data.avg_c || data.c || 0).toFixed(0)} ppm
             </div>
             <div className='text-xs text-gray-500'>
-              {getCO2LevelDescription(data.c)}
+              {getCO2LevelDescription(data.avg_c || data.c)}
             </div>
           </div>
 
@@ -197,7 +199,9 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
               </svg>
               <span className='text-sm text-gray-600'>Humidity</span>
             </div>
-            <div className='text-lg font-semibold text-gray-900'>{data.h}%</div>
+            <div className='text-lg font-semibold text-gray-900'>
+              {(data.avg_h || data.h || 0).toFixed(1)}%
+            </div>
           </div>
         </div>
 
@@ -220,7 +224,7 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
               <span className='text-sm text-gray-600'>Credits</span>
             </div>
             <div className='text-lg font-semibold text-green-600'>
-              {data.cr.toFixed(1)}
+              {(data.cr || 0).toFixed(1)}
             </div>
           </div>
 
@@ -242,7 +246,7 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
               <span className='text-sm text-gray-600'>Emissions</span>
             </div>
             <div className='text-lg font-semibold text-orange-600'>
-              {data.e.toFixed(1)}
+              {(data.e || 0).toFixed(1)}
             </div>
           </div>
         </div>
@@ -286,11 +290,33 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
             Real-Time IoT Data
           </h2>
           <p className='text-gray-600'>
-            Live sensor data from carbon credit devices
+            Live sensor data from carbon credit devices via InfluxDB
           </p>
         </div>
 
         <div className='flex items-center space-x-3'>
+          <Badge
+            className={`px-3 py-1 ${
+              connectionState.isConnected
+                ? 'bg-green-100 text-green-800'
+                : connectionState.isConnecting
+                  ? 'bg-yellow-100 text-yellow-800'
+                  : 'bg-red-100 text-red-800'
+            }`}
+          >
+            {connectionState.isConnected
+              ? '🟢'
+              : connectionState.isConnecting
+                ? '🟡'
+                : '🔴'}{' '}
+            MQTT{' '}
+            {connectionState.isConnected
+              ? 'Connected'
+              : connectionState.isConnecting
+                ? 'Connecting'
+                : 'Disconnected'}
+          </Badge>
+
           <Button
             onClick={() => setAutoRefresh(!autoRefresh)}
             variant={autoRefresh ? 'primary' : 'outline'}
@@ -299,7 +325,10 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
             {autoRefresh ? 'Auto Refresh ON' : 'Auto Refresh OFF'}
           </Button>
 
-          <Button onClick={clearMessages} variant='outline' size='sm'>
+          <Button
+            onClick={clearMessages}
+            className='px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-md'
+          >
             Clear Messages
           </Button>
         </div>
@@ -340,31 +369,9 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
             <div className='text-sm text-gray-600'>
               Messages: {messages.length}
             </div>
-            <div className='text-sm text-gray-600'>
-              Active Wallets:{' '}
-              {
-                Array.from(
-                  new Set(
-                    [
-                      ...Array.from(sequesterDevices.values()),
-                      ...Array.from(emitterDevices.values()),
-                    ]
-                      .map(d => d.walletAddress)
-                      .filter(Boolean)
-                  )
-                ).length
-              }
-            </div>
+            <div className='text-sm text-gray-600'>Data Source: InfluxDB</div>
           </div>
         </div>
-
-        {connectionState.error && (
-          <div className='mt-3 p-3 bg-red-50 border border-red-200 rounded-lg'>
-            <p className='text-sm text-red-800'>
-              <strong>Error:</strong> {connectionState.error}
-            </p>
-          </div>
-        )}
       </Card>
 
       {/* Device Grid */}
@@ -409,7 +416,7 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
                 <ul className='list-disc list-inside mt-2 space-y-1'>
                   <li>Connected to WiFi</li>
                   <li>Running the carbon credit simulator</li>
-                  <li>Publishing to MQTT broker</li>
+                  <li>Sending data to InfluxDB</li>
                 </ul>
               </div>
             </Card>
@@ -441,7 +448,9 @@ export function RealTimeDashboard({ className }: RealTimeDashboardProps) {
                   </Badge>
                   <div className='flex flex-col'>
                     <span className='text-sm font-mono text-gray-600'>
-                      {message.topic}
+                      {message.payload.device_id ||
+                        message.topic.split('/')[1] ||
+                        'unknown'}
                     </span>
                     {message.payload.walletAddress && (
                       <span className='text-xs text-gray-500 font-mono'>

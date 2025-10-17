@@ -11,6 +11,8 @@ import mqtt, { MqttClient } from 'mqtt';
 import {
   writeSensorData,
   writeConnectionEvent,
+  writeHeartbeatData,
+  writeAlertData,
   initializeInfluxDB,
 } from '@/lib/influxdb';
 
@@ -44,12 +46,32 @@ export interface SensorData {
   location?: string;
   type?: string;
   version?: string;
-  c: number; // CO2 reading
-  h: number; // Humidity reading
+  // New format with avg/max/min values
+  avg_c?: number; // Average CO2 reading
+  max_c?: number; // Maximum CO2 reading
+  min_c?: number; // Minimum CO2 reading
+  avg_h?: number; // Average humidity reading
+  max_h?: number; // Maximum humidity reading
+  min_h?: number; // Minimum humidity reading
+  samples?: number; // Number of samples
+  // Legacy format (for backward compatibility)
+  c?: number; // CO2 reading (legacy)
+  h?: number; // Humidity reading (legacy)
+  // Common fields
   cr: number; // Carbon credits
   e: number; // Emissions
   o: boolean; // Offset status
   t: number; // Timestamp
+  credits_avail?: number; // Available credits (for emitters)
+  // Heartbeat fields
+  status?: string; // Device status
+  uptime?: number; // Device uptime
+  rssi?: number; // Signal strength
+  // Alert fields
+  alert_type?: string; // Type of alert
+  message?: string; // Alert message
+  co2?: number; // CO2 level at alert time
+  credits?: number; // Credits at alert time
   walletAddress?: string; // User's wallet address extracted from topic
   apiKey?: string; // API key extracted from topic
 }
@@ -238,48 +260,161 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
         return newMessages;
       });
 
-      // Save sensor data to InfluxDB with wallet address as key
+      // Route message to appropriate InfluxDB function based on message type
       try {
-        const sensorData = {
-          deviceId:
-            message.payload.device_id || topic.split('/')[1] || 'unknown',
-          deviceType: message.deviceType,
-          apiKey: message.payload.apiKey,
-          walletAddress: message.payload.walletAddress,
-          co2: message.payload.c,
-          humidity: message.payload.h,
-          credits: message.payload.cr,
-          emissions: message.payload.e,
-          offset: message.payload.o,
-          timestamp: message.timestamp,
-          location: message.payload.location,
-          ip: message.payload.ip,
-          mac: message.payload.mac,
-        };
+        const deviceId =
+          message.payload.device_id || topic.split('/')[1] || 'unknown';
+        const deviceType = message.deviceType;
+        const apiKey = message.payload.apiKey;
+        const walletAddress = message.payload.walletAddress;
+        const timestamp = message.timestamp;
+        const ip = message.payload.ip;
+        const mac = message.payload.mac;
 
-        console.log(`📊 Saving MQTT data to InfluxDB:`, {
-          deviceId: sensorData.deviceId,
-          deviceType: sensorData.deviceType,
-          walletAddress: sensorData.walletAddress
-            ? `${sensorData.walletAddress.slice(0, 6)}...${sensorData.walletAddress.slice(-4)}`
-            : 'unknown',
-          apiKey: sensorData.apiKey
-            ? `${sensorData.apiKey.slice(0, 6)}...`
-            : 'unknown',
-          co2: sensorData.co2,
-          credits: sensorData.credits,
-        });
+        // Determine message type based on payload structure
+        if (message.payload.type === 'heartbeat' || message.payload.status) {
+          // Handle heartbeat data
+          const heartbeatData = {
+            deviceId,
+            deviceType,
+            apiKey,
+            walletAddress,
+            status: message.payload.status || 'unknown',
+            uptime:
+              typeof message.payload.uptime === 'number'
+                ? message.payload.uptime
+                : 0,
+            rssi:
+              typeof message.payload.rssi === 'number'
+                ? message.payload.rssi
+                : 0,
+            timestamp,
+            ip,
+            mac,
+          };
 
-        const success = await writeSensorData(sensorData);
+          console.log(`💓 Saving heartbeat data to InfluxDB:`, {
+            deviceId: heartbeatData.deviceId,
+            status: heartbeatData.status,
+            uptime: heartbeatData.uptime,
+          });
 
-        if (success) {
-          console.log(
-            `✅ Successfully saved MQTT data to InfluxDB for wallet: ${sensorData.walletAddress ? sensorData.walletAddress.slice(0, 6) + '...' + sensorData.walletAddress.slice(-4) : 'unknown'}`
-          );
+          const success = await writeHeartbeatData(heartbeatData);
+        } else if (
+          message.payload.type === 'alert' ||
+          message.payload.alert_type
+        ) {
+          // Handle alert data
+          const alertData = {
+            deviceId,
+            deviceType,
+            apiKey,
+            walletAddress,
+            alertType: message.payload.alert_type || 'unknown',
+            message: message.payload.message || 'No message',
+            co2:
+              typeof message.payload.co2 === 'number' ? message.payload.co2 : 0,
+            credits:
+              typeof message.payload.credits === 'number'
+                ? message.payload.credits
+                : 0,
+            timestamp,
+            ip,
+            mac,
+          };
+
+          console.log(`🚨 Saving alert data to InfluxDB:`, {
+            deviceId: alertData.deviceId,
+            alertType: alertData.alertType,
+            co2: alertData.co2,
+          });
+
+          const success = await writeAlertData(alertData);
         } else {
-          console.warn(
-            `⚠️ Failed to save MQTT data to InfluxDB for wallet: ${sensorData.walletAddress ? sensorData.walletAddress.slice(0, 6) + '...' + sensorData.walletAddress.slice(-4) : 'unknown'}`
-          );
+          // Handle sensor data (default case)
+          // Validate and provide default values for required fields
+          // Handle both new format (avg_c, max_c, min_c) and legacy format (c, h)
+          const co2Value =
+            typeof message.payload.avg_c === 'number'
+              ? message.payload.avg_c
+              : typeof message.payload.c === 'number'
+                ? message.payload.c
+                : 0;
+          const humidityValue =
+            typeof message.payload.avg_h === 'number'
+              ? message.payload.avg_h
+              : typeof message.payload.h === 'number'
+                ? message.payload.h
+                : 0;
+
+          const sensorData = {
+            deviceId,
+            deviceType,
+            apiKey,
+            walletAddress,
+            co2: co2Value,
+            humidity: humidityValue,
+            credits:
+              typeof message.payload.cr === 'number' ? message.payload.cr : 0,
+            emissions:
+              typeof message.payload.e === 'number' ? message.payload.e : 0,
+            offset:
+              typeof message.payload.o === 'boolean'
+                ? message.payload.o
+                : false,
+            timestamp,
+            location: message.payload.location,
+            ip,
+            mac,
+            // Additional fields for new format
+            avgCo2:
+              typeof message.payload.avg_c === 'number'
+                ? message.payload.avg_c
+                : undefined,
+            maxCo2:
+              typeof message.payload.max_c === 'number'
+                ? message.payload.max_c
+                : undefined,
+            minCo2:
+              typeof message.payload.min_c === 'number'
+                ? message.payload.min_c
+                : undefined,
+            avgHumidity:
+              typeof message.payload.avg_h === 'number'
+                ? message.payload.avg_h
+                : undefined,
+            maxHumidity:
+              typeof message.payload.max_h === 'number'
+                ? message.payload.max_h
+                : undefined,
+            minHumidity:
+              typeof message.payload.min_h === 'number'
+                ? message.payload.min_h
+                : undefined,
+            samples:
+              typeof message.payload.samples === 'number'
+                ? message.payload.samples
+                : undefined,
+            creditsAvailable:
+              typeof message.payload.credits_avail === 'number'
+                ? message.payload.credits_avail
+                : undefined,
+          };
+
+          console.log(`📊 Saving sensor data to InfluxDB:`, {
+            deviceId: sensorData.deviceId,
+            deviceType: sensorData.deviceType,
+            walletAddress: sensorData.walletAddress
+              ? `${sensorData.walletAddress.slice(0, 6)}...${sensorData.walletAddress.slice(-4)}`
+              : 'unknown',
+            apiKey: sensorData.apiKey
+              ? `${sensorData.apiKey.slice(0, 6)}...`
+              : 'unknown',
+            co2: sensorData.co2,
+            credits: sensorData.credits,
+          });
+
+          const success = await writeSensorData(sensorData);
         }
       } catch (error) {
         console.error('❌ Failed to save sensor data to InfluxDB:', error);

@@ -13,7 +13,7 @@ export default function HomePage() {
         <div className='absolute inset-0 opacity-10'>
           <div className='absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.15)_1px,transparent_0)] bg-[length:24px_24px]'></div>
         </div>
-        
+
         {/* Floating Elements */}
         <div className='absolute top-20 left-10 w-20 h-20 bg-white/10 rounded-full blur-xl animate-pulse-slow'></div>
         <div className='absolute bottom-20 right-10 w-32 h-32 bg-emerald-300/20 rounded-full blur-2xl animate-bounce-subtle'></div>
@@ -29,26 +29,27 @@ export default function HomePage() {
             <h1 className='text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-emerald-100 bg-clip-text text-transparent leading-tight'>
               IoT-Powered Carbon Credit Management
             </h1>
-            
+
             {/* Subtitle */}
             <p className='text-lg sm:text-xl lg:text-2xl mb-8 max-w-4xl mx-auto text-emerald-100 leading-relaxed px-4'>
-              Monitor, track, and manage carbon credits through real-time IoT sensor data. 
-              Join industry leaders in transparent environmental impact measurement and verification.
+              Monitor, track, and manage carbon credits through real-time IoT
+              sensor data. Join industry leaders in transparent environmental
+              impact measurement and verification.
             </p>
-            
+
             {/* CTA Buttons */}
             <div className='flex flex-col sm:flex-row gap-4 justify-center items-center px-4'>
               <Link href='/iot-devices' className='w-full sm:w-auto'>
-                <Button 
-                  size='xl' 
+                <Button
+                  size='xl'
                   className='w-full sm:w-auto bg-white text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300'
                 >
                   Manage IoT Devices
                 </Button>
               </Link>
               <Link href='/developer' className='w-full sm:w-auto'>
-                <Button 
-                  variant='outline' 
+                <Button
+                  variant='outline'
                   size='xl'
                   className='w-full sm:w-auto border-2 border-white text-white hover:bg-white hover:text-emerald-600 backdrop-blur-sm transition-all duration-300'
                 >
@@ -68,7 +69,8 @@ export default function HomePage() {
               Real-Time Environmental Monitoring
             </h2>
             <p className='text-lg sm:text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed'>
-              Connect IoT sensors to monitor carbon sequestration, air quality, and environmental impact in real-time.
+              Connect IoT sensors to monitor carbon sequestration, air quality,
+              and environmental impact in real-time.
             </p>
           </div>
 
@@ -77,12 +79,18 @@ export default function HomePage() {
               <div className='w-16 h-16 lg:w-20 lg:h-20 bg-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300'>
                 <span className='text-2xl lg:text-3xl'>📱</span>
               </div>
-              <h3 className='text-xl lg:text-2xl font-semibold text-gray-900 mb-3 lg:mb-4'>IoT Device Management</h3>
+              <h3 className='text-xl lg:text-2xl font-semibold text-gray-900 mb-3 lg:mb-4'>
+                IoT Device Management
+              </h3>
               <p className='text-gray-600 mb-6 lg:mb-8 leading-relaxed'>
-                Register, configure, and monitor your environmental sensors with our comprehensive device management platform.
+                Register, configure, and monitor your environmental sensors with
+                our comprehensive device management platform.
               </p>
               <Link href='/iot-devices'>
-                <Button size='lg' className='bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300'>
+                <Button
+                  size='lg'
+                  className='bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300'
+                >
                   Manage Devices
                 </Button>
               </Link>
@@ -92,12 +100,18 @@ export default function HomePage() {
               <div className='w-16 h-16 lg:w-20 lg:h-20 bg-green-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300'>
                 <span className='text-2xl lg:text-3xl'>📊</span>
               </div>
-              <h3 className='text-xl lg:text-2xl font-semibold text-gray-900 mb-3 lg:mb-4'>Data Analytics</h3>
+              <h3 className='text-xl lg:text-2xl font-semibold text-gray-900 mb-3 lg:mb-4'>
+                Data Analytics
+              </h3>
               <p className='text-gray-600 mb-6 lg:mb-8 leading-relaxed'>
-                Analyze environmental data trends, generate reports, and track carbon credit generation over time.
+                Analyze environmental data trends, generate reports, and track
+                carbon credit generation over time.
               </p>
               <Link href='/iot-data'>
-                <Button size='lg' className='bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all duration-300'>
+                <Button
+                  size='lg'
+                  className='bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all duration-300'
+                >
                   View Analytics
                 </Button>
               </Link>
@@ -107,12 +121,18 @@ export default function HomePage() {
               <div className='w-16 h-16 lg:w-20 lg:h-20 bg-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300'>
                 <span className='text-2xl lg:text-3xl'>⚙️</span>
               </div>
-              <h3 className='text-xl lg:text-2xl font-semibold text-gray-900 mb-3 lg:mb-4'>Developer Tools</h3>
+              <h3 className='text-xl lg:text-2xl font-semibold text-gray-900 mb-3 lg:mb-4'>
+                Developer Tools
+              </h3>
               <p className='text-gray-600 mb-6 lg:mb-8 leading-relaxed'>
-                Access APIs, manage applications, and integrate IoT data into your environmental monitoring solutions.
+                Access APIs, manage applications, and integrate IoT data into
+                your environmental monitoring solutions.
               </p>
               <Link href='/developer'>
-                <Button size='lg' className='bg-purple-600 hover:bg-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300'>
+                <Button
+                  size='lg'
+                  className='bg-purple-600 hover:bg-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300'
+                >
                   Developer Portal
                 </Button>
               </Link>
@@ -129,7 +149,8 @@ export default function HomePage() {
               Platform Features
             </h2>
             <p className='text-lg sm:text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed'>
-              Comprehensive tools for environmental monitoring and carbon credit management
+              Comprehensive tools for environmental monitoring and carbon credit
+              management
             </p>
           </div>
 
@@ -138,9 +159,12 @@ export default function HomePage() {
               <div className='w-12 h-12 lg:w-16 lg:h-16 bg-emerald-100 rounded-xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-300'>
                 <span className='text-xl lg:text-2xl'>🌡️</span>
               </div>
-              <h3 className='text-lg lg:text-xl font-semibold text-gray-900 mb-2 lg:mb-3'>Sensor Integration</h3>
+              <h3 className='text-lg lg:text-xl font-semibold text-gray-900 mb-2 lg:mb-3'>
+                Sensor Integration
+              </h3>
               <p className='text-gray-600 text-sm lg:text-base leading-relaxed'>
-                Connect temperature, humidity, air quality, and other environmental sensors
+                Connect temperature, humidity, air quality, and other
+                environmental sensors
               </p>
             </div>
 
@@ -148,9 +172,12 @@ export default function HomePage() {
               <div className='w-12 h-12 lg:w-16 lg:h-16 bg-blue-100 rounded-xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-300'>
                 <span className='text-xl lg:text-2xl'>📈</span>
               </div>
-              <h3 className='text-lg lg:text-xl font-semibold text-gray-900 mb-2 lg:mb-3'>Time-Series Data</h3>
+              <h3 className='text-lg lg:text-xl font-semibold text-gray-900 mb-2 lg:mb-3'>
+                Time-Series Data
+              </h3>
               <p className='text-gray-600 text-sm lg:text-base leading-relaxed'>
-                Track environmental metrics over time with detailed analytics and reporting
+                Track environmental metrics over time with detailed analytics
+                and reporting
               </p>
             </div>
 
@@ -158,9 +185,12 @@ export default function HomePage() {
               <div className='w-12 h-12 lg:w-16 lg:h-16 bg-green-100 rounded-xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-300'>
                 <span className='text-xl lg:text-2xl'>🏆</span>
               </div>
-              <h3 className='text-lg lg:text-xl font-semibold text-gray-900 mb-2 lg:mb-3'>Credit Tracking</h3>
+              <h3 className='text-lg lg:text-xl font-semibold text-gray-900 mb-2 lg:mb-3'>
+                Credit Tracking
+              </h3>
               <p className='text-gray-600 text-sm lg:text-base leading-relaxed'>
-                Monitor carbon credit generation and user credit balances in real-time
+                Monitor carbon credit generation and user credit balances in
+                real-time
               </p>
             </div>
 
@@ -168,9 +198,12 @@ export default function HomePage() {
               <div className='w-12 h-12 lg:w-16 lg:h-16 bg-purple-100 rounded-xl flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-300'>
                 <span className='text-xl lg:text-2xl'>🔌</span>
               </div>
-              <h3 className='text-lg lg:text-xl font-semibold text-gray-900 mb-2 lg:mb-3'>API Access</h3>
+              <h3 className='text-lg lg:text-xl font-semibold text-gray-900 mb-2 lg:mb-3'>
+                API Access
+              </h3>
               <p className='text-gray-600 text-sm lg:text-base leading-relaxed'>
-                Integrate with your applications using our comprehensive REST API
+                Integrate with your applications using our comprehensive REST
+                API
               </p>
             </div>
           </div>
@@ -183,26 +216,27 @@ export default function HomePage() {
         <div className='absolute inset-0 opacity-10'>
           <div className='absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.15)_1px,transparent_0)] bg-[length:24px_24px]'></div>
         </div>
-        
+
         <div className='relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center'>
           <h2 className='text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 lg:mb-6'>
             Ready to Start Monitoring?
           </h2>
           <p className='text-lg sm:text-xl lg:text-2xl text-emerald-100 mb-8 lg:mb-12 max-w-3xl mx-auto leading-relaxed'>
-            Join the future of environmental monitoring with IoT-powered carbon credit management
+            Join the future of environmental monitoring with IoT-powered carbon
+            credit management
           </p>
           <div className='flex flex-col sm:flex-row gap-4 justify-center items-center'>
             <Link href='/iot-devices' className='w-full sm:w-auto'>
-              <Button 
-                size='xl' 
+              <Button
+                size='xl'
                 className='w-full sm:w-auto bg-white text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300'
               >
                 Get Started
               </Button>
             </Link>
             <Link href='/developer' className='w-full sm:w-auto'>
-              <Button 
-                variant='outline' 
+              <Button
+                variant='outline'
                 size='xl'
                 className='w-full sm:w-auto border-2 border-white text-white hover:bg-white hover:text-emerald-600 backdrop-blur-sm transition-all duration-300'
               >

@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { authenticateJWT } from '@/lib/auth/middleware-pages';
+import { eq } from 'drizzle-orm';
 
 /**
  * GET /api/auth/me
@@ -19,21 +20,38 @@ export default async function handler(
 
     const user = (req as any).user;
 
-    // For now, return mock user data based on the authenticated user
-    // In a real implementation, you would fetch from database
-    const mockUser = {
-      id: user.id,
-      walletAddress: user.walletAddress,
-      username: `user_${user.walletAddress.slice(0, 8)}`,
-      email: null,
-      role: user.role,
-      isVerified: false,
-      createdAt: new Date().toISOString(),
-    };
+    // Fetch user data from database
+    const { db } = await import('@/lib/db');
+    const { users } = await import('@/lib/db/schema');
+
+    const userData = await db
+      .select()
+      .from(users)
+      .where(eq(users.walletAddress, user.walletAddress))
+      .limit(1);
+
+    if (userData.length === 0) {
+      // Create new user if doesn't exist
+      const newUser = await db
+        .insert(users)
+        .values({
+          walletAddress: user.walletAddress,
+          username: `user_${user.walletAddress.slice(0, 8)}`,
+          role: user.role || 'USER',
+          isVerified: false,
+          createdAt: new Date(),
+        })
+        .returning();
+
+      return res.status(200).json({
+        success: true,
+        user: newUser[0],
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      user: mockUser,
+      user: userData[0],
     });
   } catch (error) {
     console.error('Get user error:', error);

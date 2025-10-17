@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/db';
-import { applications } from '@/lib/db/schema';
+import { applications, apiKeys } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { authenticateJWTPages } from '@/lib/auth/middleware';
 import { generateApiKey, generateApiKeyJWT } from '@/lib/auth/jwt';
@@ -98,18 +98,13 @@ export default async function handler(
         });
       }
 
-      // Create application in database with automatic API key generation
-      console.log(`[Applications API] Generating API key for application`);
-      const { key } = generateApiKey();
-
+      // Create application in database
       const applicationData: any = {
         userId,
         name,
         description: description || null,
         website: website || null,
         status: 'ACTIVE',
-        // Single API key field
-        apiKey: key,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -123,23 +118,9 @@ export default async function handler(
         `[Applications API] Application created with ID: ${newApplication[0].id}`
       );
 
-      // Generate JWT token for the API key
-      console.log(`[Applications API] Generating JWT token...`);
-      const token = generateApiKeyJWT({
-        applicationId: newApplication[0].id,
-        userId,
-        permissions: ['read:devices', 'write:devices'],
-      });
-
       const response: any = {
         success: true,
         application: newApplication[0],
-        apiKey: {
-          key: newApplication[0].apiKey,
-          token,
-          name: `${name} API Key`,
-          permissions: ['read:devices', 'write:devices'],
-        },
       };
 
       return res.status(201).json(response);
@@ -208,7 +189,13 @@ export default async function handler(
       }
 
       // Check if application already has an API key
-      if (application[0].apiKey) {
+      const existingApiKeys = await db
+        .select()
+        .from(apiKeys)
+        .where(eq(apiKeys.applicationId, applicationId))
+        .limit(1);
+
+      if (existingApiKeys.length > 0) {
         console.log(`[Applications API] Application already has an API key`);
         return res
           .status(400)
@@ -216,16 +203,22 @@ export default async function handler(
       }
 
       console.log(`[Applications API] Generating API key...`);
-      const { key } = generateApiKey();
+      const { key, hash } = generateApiKey();
 
-      console.log(`[Applications API] Updating application with API key...`);
-      const updatedApplication = await db
-        .update(applications)
-        .set({
-          apiKey: key,
-          updatedAt: new Date(),
+      // Calculate expiration date
+      const expiresAt = expiresInDays
+        ? new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000)
+        : null;
+
+      console.log(`[Applications API] Creating API key record...`);
+      const newApiKey = await db
+        .insert(apiKeys)
+        .values({
+          applicationId,
+          keyHash: hash,
+          status: 'ACTIVE',
+          expiresAt,
         })
-        .where(eq(applications.id, applicationId))
         .returning();
 
       console.log(

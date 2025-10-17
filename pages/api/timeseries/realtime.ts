@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { InfluxDB, QueryApi } from '@influxdata/influxdb-client';
-import { RedisService } from '../../../lib/redis';
 
 // InfluxDB Configuration
 const INFLUX_CONFIG = {
@@ -10,7 +9,6 @@ const INFLUX_CONFIG = {
   bucket: process.env.INFLUXDB_BUCKET || 'mqtt-data',
 };
 
-// Initialize InfluxDB client for queries
 const influxDB = new InfluxDB({
   url: INFLUX_CONFIG.url,
   token: INFLUX_CONFIG.token,
@@ -26,52 +24,14 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const {
-    deviceId,
-    deviceType,
-    walletAddress,
-    startTime,
-    endTime,
-    limit = '100',
-    measurement = 'sensor_data',
-    aggregation,
-    groupBy,
-  } = req.query;
+  const { deviceId, deviceType, walletAddress, limit = '50' } = req.query;
 
   try {
-    // Create cache key from query parameters
-    const cacheKey = JSON.stringify({
-      deviceId,
-      deviceType,
-      walletAddress,
-      startTime,
-      endTime,
-      limit,
-      measurement,
-      aggregation,
-      groupBy,
-    });
-
-    // Try to get from Redis cache first
-    const cachedData = await RedisService.getTimeseriesQuery(cacheKey);
-    if (cachedData) {
-      console.log('📈 Returning cached timeseries data');
-      return res.status(200).json({
-        success: true,
-        data: cachedData,
-        count: cachedData.length,
-        cached: true,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    console.log('📈 Cache miss - Querying timeseries data from InfluxDB...');
-
-    // Build Flux query
+    // Build Flux query for real-time data (last 5 minutes)
     let fluxQuery = `
       from(bucket: "${INFLUX_CONFIG.bucket}")
-        |> range(start: ${startTime || '-24h'}, stop: ${endTime || 'now()'})
-        |> filter(fn: (r) => r._measurement == "${measurement}")
+        |> range(start: -5m)
+        |> filter(fn: (r) => r._measurement == "sensor_data")
     `;
 
     // Add filters
@@ -87,19 +47,13 @@ export default async function handler(
       fluxQuery += `|> filter(fn: (r) => r.wallet_address == "${walletAddress}")`;
     }
 
-    // Add aggregation if specified
-    if (aggregation) {
-      const aggWindow = groupBy || '1h';
-      fluxQuery += `|> aggregateWindow(every: ${aggWindow}, fn: ${aggregation}, createEmpty: false)`;
-    }
-
     // Add limit and sort
     fluxQuery += `
       |> sort(columns: ["_time"], desc: true)
       |> limit(n: ${limit})
     `;
 
-    console.log('🔍 Executing Flux query:', fluxQuery);
+    console.log('🔍 Executing real-time Flux query:', fluxQuery);
 
     // Execute query
     const data: any[] = [];
@@ -109,37 +63,31 @@ export default async function handler(
         data.push(record);
       },
       error(error) {
-        console.error('❌ InfluxDB query error:', error);
+        console.error('❌ InfluxDB real-time query error:', error);
         throw error;
       },
       complete() {
-        console.log(`✅ Query completed. Retrieved ${data.length} records`);
+        console.log(
+          `✅ Real-time query completed. Retrieved ${data.length} records`
+        );
       },
     });
-
-    // Cache the results for 5 minutes
-    await RedisService.cacheTimeseriesQuery(cacheKey, data);
 
     res.status(200).json({
       success: true,
       data: data,
       count: data.length,
-      cached: false,
       timestamp: new Date().toISOString(),
+      realtime: true,
       query: {
         deviceId,
         deviceType,
         walletAddress,
-        startTime,
-        endTime,
         limit,
-        measurement,
-        aggregation,
-        groupBy,
       },
     });
   } catch (error) {
-    console.error('❌ Timeseries query error:', error);
+    console.error('❌ Real-time query error:', error);
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

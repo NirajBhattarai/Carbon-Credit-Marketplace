@@ -62,8 +62,11 @@ export abstract class BaseAgent {
   protected config: AgentConfig;
   protected state: AgentState;
   protected a2aProtocol: A2AProtocol;
-  protected messageHandlers: Map<MessageType, (message: A2AMessage) => Promise<void>> = new Map();
-  
+  protected messageHandlers: Map<
+    MessageType,
+    (message: A2AMessage) => Promise<void>
+  > = new Map();
+
   constructor(config: AgentConfig) {
     this.config = config;
     this.state = {
@@ -82,32 +85,32 @@ export abstract class BaseAgent {
     this.a2aProtocol = new A2AProtocol();
     this.setupMessageHandlers();
   }
-  
+
   /**
    * Initialize the agent
    */
   async initialize(): Promise<void> {
     console.log(`Initializing agent ${this.config.name} (${this.config.id})`);
-    
+
     // Register message handlers
     for (const [messageType, handler] of this.messageHandlers) {
       this.a2aProtocol.registerHandler(messageType, handler);
     }
-    
+
     // Start message processing loop
     this.startMessageProcessing();
-    
+
     // Start heartbeat
     this.startHeartbeat();
-    
+
     console.log(`Agent ${this.config.name} initialized successfully`);
   }
-  
+
   /**
    * Setup message handlers - to be implemented by subclasses
    */
   protected abstract setupMessageHandlers(): void;
-  
+
   /**
    * Start processing incoming messages
    */
@@ -119,11 +122,14 @@ export abstract class BaseAgent {
           await this.processMessage(message);
         }
       } catch (error) {
-        console.error(`Error processing messages for agent ${this.config.id}:`, error);
+        console.error(
+          `Error processing messages for agent ${this.config.id}:`,
+          error
+        );
       }
     }, 1000); // Process messages every second
   }
-  
+
   /**
    * Start sending heartbeat messages
    */
@@ -141,27 +147,32 @@ export abstract class BaseAgent {
           },
         });
       } catch (error) {
-        console.error(`Error sending heartbeat for agent ${this.config.id}:`, error);
+        console.error(
+          `Error sending heartbeat for agent ${this.config.id}:`,
+          error
+        );
       }
     }, 30000); // Send heartbeat every 30 seconds
   }
-  
+
   /**
    * Process a received message
    */
   protected async processMessage(message: A2AMessage): Promise<void> {
     console.log(`Agent ${this.config.id} received message:`, message.type);
-    
+
     const handler = this.messageHandlers.get(message.type);
     if (handler) {
       await handler(message);
     } else {
-      console.warn(`No handler for message type ${message.type} in agent ${this.config.id}`);
+      console.warn(
+        `No handler for message type ${message.type} in agent ${this.config.id}`
+      );
     }
-    
+
     this.state.lastActivity = Date.now();
   }
-  
+
   /**
    * Send a message to another agent
    */
@@ -177,28 +188,31 @@ export abstract class BaseAgent {
       payload,
     });
   }
-  
+
   /**
    * Broadcast a message to all agents
    */
-  protected async broadcastMessage(type: MessageType, payload: any): Promise<string> {
+  protected async broadcastMessage(
+    type: MessageType,
+    payload: any
+  ): Promise<string> {
     return this.sendMessage('broadcast', type, payload);
   }
-  
+
   /**
    * Update agent state
    */
   protected updateState(updates: Partial<AgentState>): void {
     this.state = { ...this.state, ...updates };
   }
-  
+
   /**
    * Check if agent has a specific capability
    */
   hasCapability(capability: AgentCapability): boolean {
     return this.config.capabilities.includes(capability);
   }
-  
+
   /**
    * Get agent information
    */
@@ -208,7 +222,7 @@ export abstract class BaseAgent {
       state: this.state,
     };
   }
-  
+
   /**
    * Request human approval for a transaction
    */
@@ -221,27 +235,31 @@ export abstract class BaseAgent {
     if (!this.config.settings.humanApprovalRequired) {
       return true; // Auto-approve if human approval not required
     }
-    
+
     console.log(`Requesting human approval for transaction ${transactionId}`);
-    
+
     // Send approval request to human interface
-    await this.sendMessage('human_interface', MessageType.HUMAN_APPROVAL_REQUEST, {
-      transactionId,
-      amount,
-      reason,
-      urgency,
-      context: {
-        agentId: this.config.id,
-        action: 'transaction_approval',
-        riskLevel: this.calculateRiskLevel(amount),
-      },
-    });
-    
+    await this.sendMessage(
+      'human_interface',
+      MessageType.HUMAN_APPROVAL_REQUEST,
+      {
+        transactionId,
+        amount,
+        reason,
+        urgency,
+        context: {
+          agentId: this.config.id,
+          action: 'transaction_approval',
+          riskLevel: this.calculateRiskLevel(amount),
+        },
+      }
+    );
+
     // For demo purposes, we'll simulate human approval
     // In a real implementation, this would wait for human response
     return this.simulateHumanApproval(transactionId, amount);
   }
-  
+
   /**
    * Calculate risk level based on transaction amount
    */
@@ -251,23 +269,26 @@ export abstract class BaseAgent {
     if (amount <= maxAmount * 0.5) return 'MEDIUM';
     return 'HIGH';
   }
-  
+
   /**
    * Simulate human approval (for demo purposes)
    */
-  private simulateHumanApproval(transactionId: string, amount: number): boolean {
+  private simulateHumanApproval(
+    transactionId: string,
+    amount: number
+  ): boolean {
     // Simulate approval based on amount and risk tolerance
     const maxAmount = this.config.settings.maxTransactionAmount;
     const riskTolerance = this.config.settings.riskTolerance;
-    
+
     if (amount > maxAmount) return false;
     if (riskTolerance === 'LOW' && amount > maxAmount * 0.3) return false;
     if (riskTolerance === 'MEDIUM' && amount > maxAmount * 0.7) return false;
-    
+
     console.log(`Human approval granted for transaction ${transactionId}`);
     return true;
   }
-  
+
   /**
    * Execute a transaction
    */
@@ -284,21 +305,23 @@ export abstract class BaseAgent {
         amount,
         `Transaction: ${description}`
       );
-      
+
       if (!approved) {
         console.log(`Transaction ${transactionId} rejected by human approval`);
         return false;
       }
-      
+
       // Execute the transaction (simulated)
-      console.log(`Executing transaction ${transactionId}: ${amount} HBAR to ${recipient}`);
-      
+      console.log(
+        `Executing transaction ${transactionId}: ${amount} HBAR to ${recipient}`
+      );
+
       // Update state
       this.state.hbarBalance -= amount;
       this.state.activeTransactions.push(transactionId);
       this.state.performance.totalTrades++;
       this.state.performance.totalVolume += amount;
-      
+
       // Simulate transaction completion
       setTimeout(() => {
         this.state.activeTransactions = this.state.activeTransactions.filter(
@@ -306,14 +329,14 @@ export abstract class BaseAgent {
         );
         this.state.performance.successfulTrades++;
       }, 5000);
-      
+
       return true;
     } catch (error) {
       console.error(`Error executing transaction ${transactionId}:`, error);
       return false;
     }
   }
-  
+
   /**
    * Shutdown the agent
    */

@@ -33,7 +33,12 @@ export function AuthenticationStatus() {
   if (user) {
     return (
       <div className='text-xs text-green-600 hidden sm:block'>
-        ✓ {user.role === 'DEVELOPER' ? 'Dev' : user.role === 'ADMIN' ? 'Admin' : 'User'}
+        ✓{' '}
+        {user.role === 'DEVELOPER'
+          ? 'Dev'
+          : user.role === 'ADMIN'
+            ? 'Admin'
+            : 'User'}
       </div>
     );
   }

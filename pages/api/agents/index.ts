@@ -4,7 +4,10 @@
  */
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import { AgentManager, createDefaultAgentManagerConfig } from '@/lib/agents/agent-manager';
+import {
+  AgentManager,
+  createDefaultAgentManagerConfig,
+} from '@/lib/agents/agent-manager';
 import { authenticateJWTPages } from '@/lib/auth/middleware';
 
 // Global agent manager instance
@@ -25,7 +28,10 @@ async function initializeAgentManager(): Promise<AgentManager> {
 /**
  * GET /api/agents - Get all agents and ecosystem statistics
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
     // Authenticate the request
     const authResult = await authenticateJWTPages(req);
@@ -151,15 +157,21 @@ async function handleCreateAgent(
     let newAgent;
     switch (agentConfig.type) {
       case 'carbon_sequester':
-        const { CarbonSequestrationAgent } = await import('@/lib/agents/carbon-sequestration-agent');
+        const { CarbonSequestrationAgent } = await import(
+          '@/lib/agents/carbon-sequestration-agent'
+        );
         newAgent = new CarbonSequestrationAgent(agentConfig);
         break;
       case 'carbon_offseter':
-        const { CarbonOffsetAgent } = await import('@/lib/agents/carbon-offset-agent');
+        const { CarbonOffsetAgent } = await import(
+          '@/lib/agents/carbon-offset-agent'
+        );
         newAgent = new CarbonOffsetAgent(agentConfig);
         break;
       case 'carbon_trader':
-        const { CarbonTradingAgent } = await import('@/lib/agents/carbon-trading-agent');
+        const { CarbonTradingAgent } = await import(
+          '@/lib/agents/carbon-trading-agent'
+        );
         newAgent = new CarbonTradingAgent(agentConfig);
         break;
       default:
@@ -170,7 +182,7 @@ async function handleCreateAgent(
     }
 
     await newAgent.initialize();
-    
+
     // Add to manager (this would need to be implemented in AgentManager)
     // For now, we'll just return success
     return res.status(201).json({
@@ -257,7 +269,7 @@ async function handleDeleteAgent(
     }
 
     await agent.shutdown();
-    
+
     // Remove from manager (this would need to be implemented in AgentManager)
     // For now, we'll just return success
 
@@ -277,7 +289,10 @@ async function handleDeleteAgent(
 /**
  * GET /api/agents/ecosystem - Get ecosystem statistics
  */
-export async function getEcosystemStats(req: NextApiRequest, res: NextApiResponse) {
+export async function getEcosystemStats(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
     const manager = await initializeAgentManager();
     const stats = manager.getEcosystemStatistics();
@@ -298,7 +313,10 @@ export async function getEcosystemStats(req: NextApiRequest, res: NextApiRespons
 /**
  * POST /api/agents/broadcast - Broadcast message to all agents
  */
-export async function broadcastToAgents(req: NextApiRequest, res: NextApiResponse) {
+export async function broadcastToAgents(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
     const { type, payload } = req.body;
 
@@ -350,7 +368,10 @@ export async function emergencyStop(req: NextApiRequest, res: NextApiResponse) {
 /**
  * POST /api/agents/restart - Restart the ecosystem
  */
-export async function restartEcosystem(req: NextApiRequest, res: NextApiResponse) {
+export async function restartEcosystem(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
   try {
     const manager = await initializeAgentManager();
     await manager.restart();

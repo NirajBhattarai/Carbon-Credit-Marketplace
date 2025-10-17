@@ -7,24 +7,28 @@ This implementation demonstrates a **multi-agent carbon credit trading ecosystem
 ## 🌟 **Key Features**
 
 ### ✅ **Multi-Agent Communication (A2A Protocol)**
+
 - **Agent-to-Agent messaging** using custom A2A protocol implementation
 - **Real-time negotiation** between carbon credit buyers and sellers
 - **Price discovery** through automated market making
 - **Transaction coordination** across multiple agents
 
 ### ✅ **Hedera Agent Kit Integration**
+
 - **Custom agent framework** built for Hedera ecosystem
 - **HBAR payment settlements** via AP2 protocol
 - **Smart contract integration** for carbon credit tokenization
 - **Hedera Testnet** configuration and wallet integration
 
 ### ✅ **Open-Source Implementation**
+
 - **Complete source code** with comprehensive documentation
 - **Real-time dashboard** for monitoring agent activities
 - **API endpoints** for agent management
 - **Demo-ready** with live agent negotiations
 
 ### ✅ **Advanced Features**
+
 - **Human-in-the-loop** approval for large transactions
 - **Risk management** and automated trading strategies
 - **IoT data integration** for automatic credit generation
@@ -56,14 +60,16 @@ This implementation demonstrates a **multi-agent carbon credit trading ecosystem
 ## 🤖 **Agent Types**
 
 ### 1. **Carbon Sequestration Agent** 🌱
+
 - **Purpose**: Monitors IoT devices and generates carbon credits
-- **Capabilities**: 
+- **Capabilities**:
   - Real-time IoT data processing
   - Automatic credit generation based on environmental thresholds
   - Credit pricing and market offers
   - Integration with existing IoT infrastructure
 
 ### 2. **Carbon Offset Agent** 🏭
+
 - **Purpose**: Buys carbon credits to offset industrial emissions
 - **Capabilities**:
   - Emission monitoring and calculation
@@ -72,6 +78,7 @@ This implementation demonstrates a **multi-agent carbon credit trading ecosystem
   - Quality-based credit selection
 
 ### 3. **Carbon Trading Agent** 💰
+
 - **Purpose**: Facilitates marketplace transactions and price discovery
 - **Capabilities**:
   - Market making with dynamic spreads
@@ -82,6 +89,7 @@ This implementation demonstrates a **multi-agent carbon credit trading ecosystem
 ## 🔄 **A2A Protocol Implementation**
 
 ### **Message Types**
+
 ```typescript
 enum MessageType {
   // Trading Messages
@@ -89,16 +97,16 @@ enum MessageType {
   CREDIT_REQUEST = 'credit_request',
   PRICE_NEGOTIATION = 'price_negotiation',
   TRANSACTION_PROPOSAL = 'transaction_proposal',
-  
+
   // Payment Messages
   PAYMENT_REQUEST = 'payment_request',
   PAYMENT_CONFIRMATION = 'payment_confirmation',
   SETTLEMENT_COMPLETE = 'settlement_complete',
-  
+
   // Human-in-the-loop
   HUMAN_APPROVAL_REQUEST = 'human_approval_request',
   HUMAN_APPROVAL_RESPONSE = 'human_approval_response',
-  
+
   // System Messages
   HEARTBEAT = 'heartbeat',
   ERROR = 'error',
@@ -106,6 +114,7 @@ enum MessageType {
 ```
 
 ### **Message Flow Example**
+
 1. **IoT Device** sends sensor data to **Sequestration Agent**
 2. **Sequestration Agent** generates credits and broadcasts **CREDIT_OFFER**
 3. **Offset Agent** receives offer and sends **CREDIT_REQUEST**
@@ -117,12 +126,14 @@ enum MessageType {
 ## 💰 **HBAR Payment Integration**
 
 ### **AP2 Protocol Implementation**
+
 - **Automatic settlements** using HBAR tokens
 - **Smart contract integration** for carbon credit transfers
 - **Multi-signature support** for large transactions
 - **Real-time balance tracking** and transaction monitoring
 
 ### **Payment Flow**
+
 ```typescript
 // Example payment execution
 const paymentRequest = {
@@ -137,12 +148,14 @@ const paymentRequest = {
 ## 🎯 **Human-in-the-Loop Features**
 
 ### **Approval Workflow**
+
 - **Large transactions** require human approval
 - **Risk assessment** based on transaction size and agent history
 - **Emergency stop** functionality for all agents
 - **Real-time monitoring** dashboard for human oversight
 
 ### **Risk Management**
+
 - **Transaction limits** per agent
 - **Position sizing** controls
 - **Stop-loss** mechanisms
@@ -151,6 +164,7 @@ const paymentRequest = {
 ## 📊 **Real-Time Dashboard**
 
 ### **Features**
+
 - **Live agent status** monitoring
 - **Transaction history** and performance metrics
 - **Market data** visualization
@@ -158,26 +172,31 @@ const paymentRequest = {
 - **Emergency controls** for system management
 
 ### **Access**
+
 Navigate to `/agent-ecosystem` to view the live dashboard.
 
 ## 🚀 **Getting Started**
 
 ### **1. Install Dependencies**
+
 ```bash
 npm install
 ```
 
 ### **2. Start the Development Server**
+
 ```bash
 npm run dev
 ```
 
 ### **3. Access the Agent Ecosystem**
+
 - Navigate to `http://localhost:3000/agent-ecosystem`
 - View real-time agent activities
 - Monitor transactions and negotiations
 
 ### **4. API Endpoints**
+
 ```bash
 # Get all agents
 GET /api/agents
@@ -195,6 +214,7 @@ POST /api/agents/emergency-stop
 ## 🔧 **Configuration**
 
 ### **Agent Configuration**
+
 ```typescript
 const agentConfig = {
   id: 'sequester_001',
@@ -204,7 +224,7 @@ const agentConfig = {
   capabilities: [
     AgentCapability.GENERATE_CREDITS,
     AgentCapability.SELL_CREDITS,
-    AgentCapability.MONITOR_IOT
+    AgentCapability.MONITOR_IOT,
   ],
   settings: {
     maxTransactionAmount: 1000,
@@ -220,24 +240,28 @@ const agentConfig = {
 ## 🏆 **Competition Advantages**
 
 ### **1. Multi-Agent Communication (A2A)**
+
 ✅ **Complete A2A protocol implementation**
 ✅ **Real-time message exchange between agents**
 ✅ **Automated negotiations and price discovery**
 ✅ **Transaction coordination across multiple agents**
 
 ### **2. Hedera Agent Kit Integration**
+
 ✅ **Custom agent framework for Hedera ecosystem**
 ✅ **HBAR payment settlements via AP2**
 ✅ **Smart contract integration**
 ✅ **Hedera Testnet configuration**
 
 ### **3. Open-Source Deliverables**
+
 ✅ **Complete source code with documentation**
 ✅ **Real-time dashboard for monitoring**
 ✅ **API endpoints for agent management**
 ✅ **Demo-ready implementation**
 
 ### **4. Advanced Features**
+
 ✅ **Human-in-the-loop approval system**
 ✅ **Risk management and automated trading**
 ✅ **IoT data integration**
@@ -247,6 +271,7 @@ const agentConfig = {
 ## 📈 **Performance Metrics**
 
 ### **Ecosystem Statistics**
+
 - **Total Agents**: 3 specialized agents
 - **Message Throughput**: 100+ messages per minute
 - **Transaction Speed**: <5 seconds average
@@ -254,6 +279,7 @@ const agentConfig = {
 - **Uptime**: 99.9% availability
 
 ### **Agent Performance**
+
 - **Sequestration Agent**: Generates 100+ credits/hour
 - **Offset Agent**: Processes 50+ transactions/hour
 - **Trading Agent**: Maintains 2% spread with 95% fill rate
@@ -261,26 +287,31 @@ const agentConfig = {
 ## 🎥 **Demo Video Script**
 
 ### **Scene 1: IoT Data Collection**
+
 - Show ESP32 devices collecting environmental data
 - Demonstrate real-time data flow to Sequestration Agent
 - Highlight automatic credit generation based on thresholds
 
 ### **Scene 2: Agent Negotiations**
+
 - Display A2A message exchange between agents
 - Show price negotiation process
 - Demonstrate automated transaction proposals
 
 ### **Scene 3: HBAR Settlement**
+
 - Show HBAR payment execution
 - Display smart contract interactions
 - Highlight transaction confirmation on Hedera network
 
 ### **Scene 4: Human-in-the-Loop**
+
 - Demonstrate large transaction approval workflow
 - Show risk assessment and human decision making
 - Display emergency stop functionality
 
 ### **Scene 5: Real-Time Dashboard**
+
 - Show live agent monitoring
 - Display ecosystem statistics
 - Highlight performance metrics and health monitoring
@@ -288,12 +319,14 @@ const agentConfig = {
 ## 🔮 **Future Enhancements**
 
 ### **Phase 2 Features**
+
 - **Machine learning** price prediction
 - **Cross-chain** carbon credit trading
 - **Advanced risk models** and portfolio management
 - **Integration with external** carbon markets
 
 ### **Scalability Improvements**
+
 - **Horizontal scaling** of agent instances
 - **Load balancing** for high-volume trading
 - **Microservices architecture** for better performance
@@ -302,6 +335,7 @@ const agentConfig = {
 ## 📞 **Support & Contact**
 
 For questions about the agent ecosystem implementation:
+
 - **GitHub Issues**: Report bugs and feature requests
 - **Documentation**: Comprehensive guides and API references
 - **Demo**: Live demonstration available at `/agent-ecosystem`

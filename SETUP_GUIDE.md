@@ -148,14 +148,6 @@ const char* deviceType = "CREATOR"; // or "BURNER"
 
 ## Drizzle ORM Benefits
 
-### Why Drizzle over Prisma?
-
-1. **Performance**: Drizzle is faster and has lower overhead
-2. **Type Safety**: Full TypeScript support with better type inference
-3. **SQL-like**: More familiar syntax for developers coming from SQL
-4. **Bundle Size**: Smaller bundle size for production builds
-5. **Flexibility**: More control over queries and migrations
-
 ### Key Drizzle Features Used
 
 - **Schema Definition**: Type-safe database schema with TypeScript

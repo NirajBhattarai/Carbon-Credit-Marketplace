@@ -68,11 +68,7 @@ export function AuthButton() {
       size='xs'
       className='min-w-[70px] px-2 py-1 text-xs hover:shadow-md hover:shadow-emerald-100 hover:-translate-y-0.5 transition-all duration-300'
     >
-      {isAuthenticating
-        ? 'Signing...'
-        : isLoading
-          ? 'Auth...'
-          : 'Auth'}
+      {isAuthenticating ? 'Signing...' : isLoading ? 'Auth...' : 'Auth'}
     </Button>
   );
 }

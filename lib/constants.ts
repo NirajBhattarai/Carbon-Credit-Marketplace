@@ -67,7 +67,7 @@ export const ORACLE_CONFIG = {
       hedera: '', // To be configured for Hedera testnet
     },
     // Carbon credit base price in USD (8 decimals)
-    baseCarbonCreditPrice: 25 * 10**8, // $25
+    baseCarbonCreditPrice: 25 * 10 ** 8, // $25
   },
 } as const;
 

@@ -343,10 +343,7 @@ export async function authenticateApiKeyPages(
   );
 
   const token = extractTokenFromHeader(authHeader);
-  console.log(
-    `[API Key Auth] Extracted token:`,
-    token ? 'present' : 'missing'
-  );
+  console.log(`[API Key Auth] Extracted token:`, token ? 'present' : 'missing');
 
   if (!token) {
     console.log(`[API Key Auth] No token found in authorization header`);
@@ -372,7 +369,10 @@ export async function authenticateApiKeyPages(
   );
 
   // Verify API key exists and is active
-  console.log(`[API Key Auth] Looking up API key in database:`, payload.applicationId);
+  console.log(
+    `[API Key Auth] Looking up API key in database:`,
+    payload.applicationId
+  );
   const apiKey = await db
     .select({
       id: apiKeys.id,
@@ -421,14 +421,20 @@ export async function authenticateApiKeyPages(
 
   // Check if application is active
   if (key.application.status !== 'ACTIVE') {
-    console.log(`[API Key Auth] Application is not active:`, key.application.status);
+    console.log(
+      `[API Key Auth] Application is not active:`,
+      key.application.status
+    );
     return {
       status: 401,
       data: { error: 'Application is not active' },
     };
   }
 
-  console.log(`[API Key Auth] API key authentication successful for application:`, key.application.name);
+  console.log(
+    `[API Key Auth] API key authentication successful for application:`,
+    key.application.name
+  );
 
   // Add application info to request
   (request as AuthenticatedApiRequest).application = {

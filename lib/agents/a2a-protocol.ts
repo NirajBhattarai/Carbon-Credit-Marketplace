@@ -21,21 +21,21 @@ export enum MessageType {
   TRANSACTION_PROPOSAL = 'transaction_proposal',
   TRANSACTION_ACCEPT = 'transaction_accept',
   TRANSACTION_REJECT = 'transaction_reject',
-  
+
   // IoT Data Messages
   SENSOR_DATA = 'sensor_data',
   CREDIT_GENERATION = 'credit_generation',
   THRESHOLD_ALERT = 'threshold_alert',
-  
+
   // Payment Messages
   PAYMENT_REQUEST = 'payment_request',
   PAYMENT_CONFIRMATION = 'payment_confirmation',
   SETTLEMENT_COMPLETE = 'settlement_complete',
-  
+
   // Human-in-the-loop Messages
   HUMAN_APPROVAL_REQUEST = 'human_approval_request',
   HUMAN_APPROVAL_RESPONSE = 'human_approval_response',
-  
+
   // System Messages
   HEARTBEAT = 'heartbeat',
   ERROR = 'error',
@@ -110,39 +110,47 @@ export interface HumanApprovalRequestMessage {
 
 export class A2AProtocol {
   private messageQueue: Map<string, A2AMessage[]> = new Map();
-  private messageHandlers: Map<MessageType, (message: A2AMessage) => Promise<void>> = new Map();
-  
+  private messageHandlers: Map<
+    MessageType,
+    (message: A2AMessage) => Promise<void>
+  > = new Map();
+
   constructor() {
     this.setupDefaultHandlers();
   }
-  
+
   private setupDefaultHandlers(): void {
-    this.messageHandlers.set(MessageType.HEARTBEAT, this.handleHeartbeat.bind(this));
+    this.messageHandlers.set(
+      MessageType.HEARTBEAT,
+      this.handleHeartbeat.bind(this)
+    );
     this.messageHandlers.set(MessageType.ERROR, this.handleError.bind(this));
   }
-  
+
   /**
    * Send a message from one agent to another
    */
-  async sendMessage(message: Omit<A2AMessage, 'id' | 'timestamp'>): Promise<string> {
+  async sendMessage(
+    message: Omit<A2AMessage, 'id' | 'timestamp'>
+  ): Promise<string> {
     const fullMessage: A2AMessage = {
       ...message,
       id: this.generateMessageId(),
       timestamp: Date.now(),
     };
-    
+
     // Add to recipient's message queue
     if (!this.messageQueue.has(message.to)) {
       this.messageQueue.set(message.to, []);
     }
     this.messageQueue.get(message.to)!.push(fullMessage);
-    
+
     // Process the message
     await this.processMessage(fullMessage);
-    
+
     return fullMessage.id;
   }
-  
+
   /**
    * Receive messages for a specific agent
    */
@@ -151,14 +159,17 @@ export class A2AProtocol {
     this.messageQueue.set(agentId, []); // Clear the queue
     return messages;
   }
-  
+
   /**
    * Register a message handler for a specific message type
    */
-  registerHandler(messageType: MessageType, handler: (message: A2AMessage) => Promise<void>): void {
+  registerHandler(
+    messageType: MessageType,
+    handler: (message: A2AMessage) => Promise<void>
+  ): void {
     this.messageHandlers.set(messageType, handler);
   }
-  
+
   /**
    * Process a received message
    */
@@ -181,28 +192,28 @@ export class A2AProtocol {
       }
     }
   }
-  
+
   /**
    * Generate a unique message ID
    */
   private generateMessageId(): string {
     return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
-  
+
   /**
    * Handle heartbeat messages
    */
   private async handleHeartbeat(message: A2AMessage): Promise<void> {
     console.log(`Heartbeat received from agent ${message.from}`);
   }
-  
+
   /**
    * Handle error messages
    */
   private async handleError(message: A2AMessage): Promise<void> {
     console.error(`Error message received:`, message.payload);
   }
-  
+
   /**
    * Create a credit offer message
    */
@@ -218,7 +229,7 @@ export class A2AProtocol {
       payload: offer,
     });
   }
-  
+
   /**
    * Create a credit request message
    */
@@ -234,7 +245,7 @@ export class A2AProtocol {
       payload: request,
     });
   }
-  
+
   /**
    * Create a price negotiation message
    */
@@ -250,7 +261,7 @@ export class A2AProtocol {
       payload: negotiation,
     });
   }
-  
+
   /**
    * Create a transaction proposal message
    */
@@ -266,7 +277,7 @@ export class A2AProtocol {
       payload: proposal,
     });
   }
-  
+
   /**
    * Create a human approval request message
    */

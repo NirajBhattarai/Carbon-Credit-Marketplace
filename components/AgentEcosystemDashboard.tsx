@@ -48,7 +48,7 @@ export function AgentEcosystemDashboard() {
     try {
       const response = await fetch('/api/agents?statistics=true');
       const data = await response.json();
-      
+
       if (data.success) {
         setStats(data.statistics);
         setIsRunning(data.statistics.ecosystem.isRunning);
@@ -69,7 +69,7 @@ export function AgentEcosystemDashboard() {
         method: 'POST',
       });
       const data = await response.json();
-      
+
       if (data.success) {
         setIsRunning(false);
         await fetchStats(); // Refresh stats
@@ -88,7 +88,7 @@ export function AgentEcosystemDashboard() {
         method: 'POST',
       });
       const data = await response.json();
-      
+
       if (data.success) {
         setIsRunning(true);
         await fetchStats(); // Refresh stats
@@ -109,19 +109,19 @@ export function AgentEcosystemDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
-        <span className="ml-2">Loading agent ecosystem...</span>
+      <div className='flex items-center justify-center p-8'>
+        <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-green-500'></div>
+        <span className='ml-2'>Loading agent ecosystem...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-        <h3 className="text-red-800 font-semibold">Error</h3>
-        <p className="text-red-600">{error}</p>
-        <Button onClick={fetchStats} className="mt-2">
+      <div className='p-4 bg-red-50 border border-red-200 rounded-lg'>
+        <h3 className='text-red-800 font-semibold'>Error</h3>
+        <p className='text-red-600'>{error}</p>
+        <Button onClick={fetchStats} className='mt-2'>
           Retry
         </Button>
       </div>
@@ -130,8 +130,8 @@ export function AgentEcosystemDashboard() {
 
   if (!stats) {
     return (
-      <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-        <p className="text-gray-600">No ecosystem data available</p>
+      <div className='p-4 bg-gray-50 border border-gray-200 rounded-lg'>
+        <p className='text-gray-600'>No ecosystem data available</p>
       </div>
     );
   }
@@ -163,73 +163,93 @@ export function AgentEcosystemDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className='flex items-center justify-between'>
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Agent Ecosystem</h1>
-          <p className="text-gray-600">Carbon Credit Trading Agents Dashboard</p>
+          <h1 className='text-3xl font-bold text-gray-900'>Agent Ecosystem</h1>
+          <p className='text-gray-600'>
+            Carbon Credit Trading Agents Dashboard
+          </p>
         </div>
-        <div className="flex space-x-2">
-          <Badge className={isRunning ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+        <div className='flex space-x-2'>
+          <Badge
+            className={
+              isRunning
+                ? 'bg-green-100 text-green-800'
+                : 'bg-red-100 text-red-800'
+            }
+          >
             {isRunning ? 'Running' : 'Stopped'}
           </Badge>
           <Button
             onClick={handleEmergencyStop}
-            variant="destructive"
+            variant='destructive'
             disabled={!isRunning}
           >
             Emergency Stop
           </Button>
-          <Button
-            onClick={handleRestart}
-            disabled={isRunning}
-          >
+          <Button onClick={handleRestart} disabled={isRunning}>
             Restart
           </Button>
         </div>
       </div>
 
       {/* Ecosystem Overview */}
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Ecosystem Overview</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{stats.ecosystem.totalAgents}</div>
-            <div className="text-sm text-gray-600">Total Agents</div>
+      <Card className='p-6'>
+        <h2 className='text-xl font-semibold mb-4'>Ecosystem Overview</h2>
+        <div className='grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4'>
+          <div className='text-center'>
+            <div className='text-2xl font-bold text-blue-600'>
+              {stats.ecosystem.totalAgents}
+            </div>
+            <div className='text-sm text-gray-600'>Total Agents</div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{stats.ecosystem.totalCredits.toLocaleString()}</div>
-            <div className="text-sm text-gray-600">Total Credits</div>
+          <div className='text-center'>
+            <div className='text-2xl font-bold text-green-600'>
+              {stats.ecosystem.totalCredits.toLocaleString()}
+            </div>
+            <div className='text-sm text-gray-600'>Total Credits</div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">{stats.ecosystem.totalHbarBalance.toFixed(2)}</div>
-            <div className="text-sm text-gray-600">HBAR Balance</div>
+          <div className='text-center'>
+            <div className='text-2xl font-bold text-purple-600'>
+              {stats.ecosystem.totalHbarBalance.toFixed(2)}
+            </div>
+            <div className='text-sm text-gray-600'>HBAR Balance</div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">{stats.ecosystem.totalTrades}</div>
-            <div className="text-sm text-gray-600">Total Trades</div>
+          <div className='text-center'>
+            <div className='text-2xl font-bold text-orange-600'>
+              {stats.ecosystem.totalTrades}
+            </div>
+            <div className='text-sm text-gray-600'>Total Trades</div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-indigo-600">{stats.ecosystem.totalVolume.toFixed(2)}</div>
-            <div className="text-sm text-gray-600">Total Volume</div>
+          <div className='text-center'>
+            <div className='text-2xl font-bold text-indigo-600'>
+              {stats.ecosystem.totalVolume.toFixed(2)}
+            </div>
+            <div className='text-sm text-gray-600'>Total Volume</div>
           </div>
-          <div className="text-center">
-            <div className="text-2xl font-bold text-pink-600">{stats.ecosystem.averagePrice.toFixed(3)}</div>
-            <div className="text-sm text-gray-600">Avg Price</div>
+          <div className='text-center'>
+            <div className='text-2xl font-bold text-pink-600'>
+              {stats.ecosystem.averagePrice.toFixed(3)}
+            </div>
+            <div className='text-sm text-gray-600'>Avg Price</div>
           </div>
         </div>
       </Card>
 
       {/* Agents List */}
-      <Card className="p-6">
-        <h2 className="text-xl font-semibold mb-4">Active Agents</h2>
-        <div className="space-y-4">
-          {stats.agents.map((agent) => (
-            <div key={agent.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center space-x-3">
-                  <h3 className="font-semibold text-lg">{agent.name}</h3>
+      <Card className='p-6'>
+        <h2 className='text-xl font-semibold mb-4'>Active Agents</h2>
+        <div className='space-y-4'>
+          {stats.agents.map(agent => (
+            <div
+              key={agent.id}
+              className='border border-gray-200 rounded-lg p-4'
+            >
+              <div className='flex items-center justify-between mb-2'>
+                <div className='flex items-center space-x-3'>
+                  <h3 className='font-semibold text-lg'>{agent.name}</h3>
                   <Badge className={getAgentTypeColor(agent.type)}>
                     {agent.type.replace('_', ' ').toUpperCase()}
                   </Badge>
@@ -237,27 +257,31 @@ export function AgentEcosystemDashboard() {
                     {agent.status}
                   </Badge>
                 </div>
-                <div className="text-sm text-gray-500">
-                  ID: {agent.id}
-                </div>
+                <div className='text-sm text-gray-500'>ID: {agent.id}</div>
               </div>
-              
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+
+              <div className='grid grid-cols-2 md:grid-cols-4 gap-4 text-sm'>
                 <div>
-                  <span className="text-gray-600">Credits:</span>
-                  <span className="ml-1 font-semibold">{agent.credits}</span>
+                  <span className='text-gray-600'>Credits:</span>
+                  <span className='ml-1 font-semibold'>{agent.credits}</span>
                 </div>
                 <div>
-                  <span className="text-gray-600">HBAR Balance:</span>
-                  <span className="ml-1 font-semibold">{agent.hbarBalance.toFixed(2)}</span>
+                  <span className='text-gray-600'>HBAR Balance:</span>
+                  <span className='ml-1 font-semibold'>
+                    {agent.hbarBalance.toFixed(2)}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Trades:</span>
-                  <span className="ml-1 font-semibold">{agent.performance.totalTrades}</span>
+                  <span className='text-gray-600'>Trades:</span>
+                  <span className='ml-1 font-semibold'>
+                    {agent.performance.totalTrades}
+                  </span>
                 </div>
                 <div>
-                  <span className="text-gray-600">Volume:</span>
-                  <span className="ml-1 font-semibold">{agent.performance.totalVolume.toFixed(2)}</span>
+                  <span className='text-gray-600'>Volume:</span>
+                  <span className='ml-1 font-semibold'>
+                    {agent.performance.totalVolume.toFixed(2)}
+                  </span>
                 </div>
               </div>
             </div>
@@ -266,7 +290,7 @@ export function AgentEcosystemDashboard() {
       </Card>
 
       {/* Real-time Updates */}
-      <div className="text-center text-sm text-gray-500">
+      <div className='text-center text-sm text-gray-500'>
         Last updated: {new Date().toLocaleTimeString()}
       </div>
     </div>

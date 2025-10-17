@@ -46,8 +46,12 @@ export function Card({
     full: 'rounded-full',
   };
 
-  const hoverStyles = hover ? 'transition-all duration-300 hover:shadow-lg hover:-translate-y-1' : '';
-  const interactiveStyles = interactive ? 'cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:scale-105' : '';
+  const hoverStyles = hover
+    ? 'transition-all duration-300 hover:shadow-lg hover:-translate-y-1'
+    : '';
+  const interactiveStyles = interactive
+    ? 'cursor-pointer transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:scale-105'
+    : '';
 
   return (
     <div
@@ -71,9 +75,17 @@ interface CardHeaderProps extends HTMLAttributes<HTMLDivElement> {
   centered?: boolean;
 }
 
-export function CardHeader({ children, className, centered = false, ...props }: CardHeaderProps) {
+export function CardHeader({
+  children,
+  className,
+  centered = false,
+  ...props
+}: CardHeaderProps) {
   return (
-    <div className={cn('mb-4', centered && 'text-center', className)} {...props}>
+    <div
+      className={cn('mb-4', centered && 'text-center', className)}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -84,7 +96,12 @@ interface CardTitleProps extends HTMLAttributes<HTMLHeadingElement> {
   size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
-export function CardTitle({ children, className, size = 'md', ...props }: CardTitleProps) {
+export function CardTitle({
+  children,
+  className,
+  size = 'md',
+  ...props
+}: CardTitleProps) {
   const sizes = {
     sm: 'text-base font-semibold',
     md: 'text-lg font-semibold',
@@ -93,10 +110,7 @@ export function CardTitle({ children, className, size = 'md', ...props }: CardTi
   };
 
   return (
-    <h3
-      className={cn('text-gray-900', sizes[size], className)}
-      {...props}
-    >
+    <h3 className={cn('text-gray-900', sizes[size], className)} {...props}>
       {children}
     </h3>
   );
@@ -106,12 +120,13 @@ interface CardSubtitleProps extends HTMLAttributes<HTMLParagraphElement> {
   children: ReactNode;
 }
 
-export function CardSubtitle({ children, className, ...props }: CardSubtitleProps) {
+export function CardSubtitle({
+  children,
+  className,
+  ...props
+}: CardSubtitleProps) {
   return (
-    <p
-      className={cn('text-sm text-gray-600 mt-1', className)}
-      {...props}
-    >
+    <p className={cn('text-sm text-gray-600 mt-1', className)} {...props}>
       {children}
     </p>
   );
@@ -138,7 +153,12 @@ interface CardFooterProps extends HTMLAttributes<HTMLDivElement> {
   centered?: boolean;
 }
 
-export function CardFooter({ children, className, centered = false, ...props }: CardFooterProps) {
+export function CardFooter({
+  children,
+  className,
+  centered = false,
+  ...props
+}: CardFooterProps) {
   return (
     <div
       className={cn(
@@ -159,7 +179,13 @@ interface CardImageProps extends HTMLAttributes<HTMLDivElement> {
   aspectRatio?: 'square' | 'video' | 'wide';
 }
 
-export function CardImage({ src, alt, className, aspectRatio = 'video', ...props }: CardImageProps) {
+export function CardImage({
+  src,
+  alt,
+  className,
+  aspectRatio = 'video',
+  ...props
+}: CardImageProps) {
   const aspectRatios = {
     square: 'aspect-square',
     video: 'aspect-video',
@@ -167,11 +193,14 @@ export function CardImage({ src, alt, className, aspectRatio = 'video', ...props
   };
 
   return (
-    <div className={cn('overflow-hidden', aspectRatios[aspectRatio], className)} {...props}>
+    <div
+      className={cn('overflow-hidden', aspectRatios[aspectRatio], className)}
+      {...props}
+    >
       <img
         src={src}
         alt={alt}
-        className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+        className='w-full h-full object-cover transition-transform duration-300 hover:scale-105'
       />
     </div>
   );
@@ -182,7 +211,12 @@ interface CardBadgeProps extends HTMLAttributes<HTMLSpanElement> {
   variant?: 'default' | 'success' | 'warning' | 'error' | 'info';
 }
 
-export function CardBadge({ children, className, variant = 'default', ...props }: CardBadgeProps) {
+export function CardBadge({
+  children,
+  className,
+  variant = 'default',
+  ...props
+}: CardBadgeProps) {
   const variants = {
     default: 'bg-gray-100 text-gray-800',
     success: 'bg-green-100 text-green-800',

@@ -85,7 +85,8 @@
 }
 
 @keyframes bounce-subtle {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -373,11 +374,11 @@ textarea:focus {
   .dark-mode {
     @apply bg-gray-900 text-white;
   }
-  
+
   .dark-mode-card {
     @apply bg-gray-800 border-gray-700;
   }
-  
+
   .dark-mode-input {
     @apply bg-gray-800 border-gray-600 text-white placeholder-gray-400;
   }
@@ -388,7 +389,7 @@ textarea:focus {
   .no-print {
     display: none !important;
   }
-  
+
   .print-break {
     page-break-before: always;
   }
