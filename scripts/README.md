@@ -98,7 +98,6 @@ The simulator publishes to these topic patterns:
   "t": 1703123456789
 }
 ```
-
 ## Monitoring
 
 The simulator displays:
@@ -150,3 +149,4 @@ You can modify the simulator by editing `scripts/mqtt-data-simulator.js`:
 - Modify data transmission intervals
 - Adjust sensor data ranges
 - Add custom alert types
+

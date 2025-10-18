@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
+import { useMQTT, SensorData } from '@/lib/mqtt/context';
 
 interface Company {
   companyId: number;
@@ -46,6 +47,83 @@ export function CompaniesDashboard() {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(6);
+  
+  // MQTT integration
+  const { messages, sequesterDevices, connectionState, getDeviceCount } = useMQTT();
+  const [realtimeData, setRealtimeData] = useState<Map<string, SensorData>>(new Map());
+
+  // Process MQTT messages for real-time data
+  useEffect(() => {
+    const latestData = new Map<string, SensorData>();
+    
+    // Get the latest message for each device
+    messages.forEach(message => {
+      const deviceId = message.payload.mac || message.payload.apiKey || 'unknown';
+      latestData.set(deviceId, message.payload);
+    });
+    
+    setRealtimeData(latestData);
+  }, [messages]);
+
+  // Determine if device is actually online based on recent activity
+  const isDeviceOnline = (data: SensorData): boolean => {
+    if (!data.t) return false;
+    
+    const now = Date.now();
+    const messageTime = data.t;
+    const timeDiff = now - messageTime;
+    
+    // Consider device online if message is less than 30 seconds old
+    return timeDiff < 30000 && data.o === true;
+  };
+
+  // Get device status with more details
+  const getDeviceStatus = (data: SensorData): { status: string; lastSeen: string; color: string } => {
+    const isOnline = isDeviceOnline(data);
+    const lastSeen = new Date(data.t).toLocaleTimeString();
+    
+    if (isOnline) {
+      return { status: 'Online', lastSeen, color: 'bg-green-100 text-green-800' };
+    } else if (data.o === true) {
+      return { status: 'Offline (Recent)', lastSeen, color: 'bg-yellow-100 text-yellow-800' };
+    } else {
+      return { status: 'Offline', lastSeen, color: 'bg-red-100 text-red-800' };
+    }
+  };
+
+  // Get devices associated with a company
+  const getCompanyDevices = (company: Company): Array<[string, SensorData]> => {
+    return Array.from(realtimeData.entries()).filter(([deviceId, data]) => {
+      // Only show devices that are actually associated with this specific company
+      // Match by wallet address (most reliable)
+      if (data.walletAddress?.toLowerCase() === company.walletAddress?.toLowerCase()) {
+        return true;
+      }
+      
+      // If no wallet address match, don't show the device for this company
+      return false;
+    });
+  };
+
+  // Debug function to show device-company associations
+  const debugDeviceAssociations = () => {
+    console.log('🔍 Device-Company Associations:');
+    companies.forEach(company => {
+      const devices = getCompanyDevices(company);
+      console.log(`Company: ${company.companyName} (${company.walletAddress.slice(0, 10)}...)`);
+      console.log(`  Devices: ${devices.length}`);
+      devices.forEach(([deviceId, data]) => {
+        console.log(`    Device: ${deviceId.slice(0, 8)}... Wallet: ${data.walletAddress?.slice(0, 10)}...`);
+      });
+    });
+  };
+
+  // Debug on data change
+  useEffect(() => {
+    if (realtimeData.size > 0 && companies.length > 0) {
+      debugDeviceAssociations();
+    }
+  }, [realtimeData, companies]);
 
   // Fetch companies data
   useEffect(() => {
@@ -252,7 +330,7 @@ export function CompaniesDashboard() {
   return (
     <div>
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <Card className="p-6 text-center">
           <div className="text-3xl font-bold text-blue-600">{companies.length}</div>
           <div className="text-sm text-gray-600">Total Companies</div>
@@ -277,6 +355,13 @@ export function CompaniesDashboard() {
             }
           </div>
           <div className="text-sm text-gray-600">Avg Price</div>
+        </Card>
+        <Card className="p-6 text-center">
+          <div className="text-3xl font-bold text-indigo-600">{getDeviceCount().sequesters}</div>
+          <div className="text-sm text-gray-600">Active Devices</div>
+          <Badge className={`mt-2 text-xs ${connectionState.isConnected ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+            {connectionState.isConnected ? "MQTT Connected" : "MQTT Disconnected"}
+          </Badge>
         </Card>
       </div>
 
@@ -319,6 +404,44 @@ export function CompaniesDashboard() {
                 <span className="font-medium">{company.stats.devices}</span>
               </div>
             </div>
+
+            {/* Company's IoT Devices */}
+            {(() => {
+              const companyDevices = getCompanyDevices(company);
+              return companyDevices.length > 0 ? (
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">IoT Devices ({companyDevices.length})</h4>
+                  <div className="space-y-2">
+                    {companyDevices.slice(0, 3).map(([deviceId, data]) => {
+                      const deviceStatus = getDeviceStatus(data);
+                      return (
+                        <div key={deviceId} className="flex items-center justify-between p-2 bg-gray-50 rounded text-xs">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono">{deviceId.slice(0, 8)}...</span>
+                            <Badge className={`text-xs ${deviceStatus.color}`}>
+                              {deviceStatus.status}
+                            </Badge>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-gray-600">CO2: {data.avg_c?.toFixed(0) || 'N/A'} ppm</div>
+                            <div className="text-gray-600">Credits: {data.cr?.toFixed(1) || '0.0'}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {companyDevices.length > 3 && (
+                      <div className="text-xs text-gray-500 text-center">
+                        +{companyDevices.length - 3} more devices
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-4 p-2 bg-gray-50 rounded text-xs text-gray-500 text-center">
+                  No IoT devices connected
+                </div>
+              );
+            })()}
 
             <div className="flex space-x-2">
               <Button 

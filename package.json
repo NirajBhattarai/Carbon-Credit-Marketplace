@@ -17,9 +17,7 @@
     "db:seed-simulator": "tsx scripts/seed-database.ts",
     "db:migrate-new": "tsx scripts/migrate-database.ts",
     "db:seed-new": "tsx scripts/seed-new-database.ts",
-    "simulate": "node scripts/mqtt-data-simulator.js",
-    "simulate:dev": "nodemon scripts/mqtt-data-simulator.js",
-    "simulate:new": "node scripts/mqtt-new-schema-simulator.js"
+    "simulate": "tsx scripts/complete-setup.ts"
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.75.0",
