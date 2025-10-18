@@ -23,12 +23,6 @@ const navigationItems: NavigationItem[] = [
   { name: 'IoT Devices', href: '/iot-devices', icon: '📱' },
   { name: 'IoT Data', href: '/iot-data', icon: '📊' },
   { name: 'User Credits', href: '/user-credits', icon: '🏆' },
-  {
-    name: 'Agent Ecosystem',
-    href: '/agent-ecosystem',
-    icon: '🤖',
-    badge: 'LIVE',
-  },
   { name: 'Developer', href: '/developer', icon: '⚙️' },
 ];
 
