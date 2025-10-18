@@ -135,9 +135,7 @@ function calculateUserCredits(rawData: any[]) {
         username: `User_${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`,
         totalCredits: 0,
         totalCO2Sequestered: 0,
-        totalCO2Emitted: 0,
         sequesterDevices: 0,
-        emitterDevices: 0,
         lastActivity: 0,
         creditHistory: [],
         co2History: [],
@@ -151,9 +149,6 @@ function calculateUserCredits(rawData: any[]) {
       if (deviceType === 'SEQUESTER') {
         user.totalCO2Sequestered += value;
         user.sequesterDevices++;
-      } else if (deviceType === 'EMITTER') {
-        user.totalCO2Emitted += value;
-        user.emitterDevices++;
       }
 
       user.co2History.push({
@@ -171,21 +166,13 @@ function calculateUserCredits(rawData: any[]) {
           co2: 0,
           type: 'sequester',
         });
-      } else if (deviceType === 'EMITTER') {
-        // Emitters consume credits, don't earn them
-        user.creditHistory.push({
-          timestamp: timestamp.getTime(),
-          credits: 0,
-          co2: 0,
-          type: 'emit',
-        });
       }
     }
   });
 
   // Calculate net impact and additional metrics
   Object.values(userCredits).forEach((user: any) => {
-    user.netCO2Impact = user.totalCO2Sequestered - user.totalCO2Emitted;
+    user.netCO2Impact = user.totalCO2Sequestered;
     user.creditsPerHour =
       user.creditHistory.length > 0
         ? user.totalCredits / (user.creditHistory.length / 24)

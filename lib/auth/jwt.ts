@@ -15,7 +15,7 @@ export interface JWTPayload {
 
 export interface ApiKeyPayload {
   applicationId: string;
-  userId: string;
+  walletAddress: string;
   permissions: string[];
   iat?: number;
   exp?: number;

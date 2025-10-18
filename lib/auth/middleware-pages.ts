@@ -160,15 +160,6 @@ export function requireRole(roles: string[]) {
 }
 
 /**
- * Middleware to require developer role for Pages Router
- */
-export function requireDeveloper(
-  req: NextApiRequest
-): Promise<{ status: number; body: any } | null> {
-  return requireRole(['DEVELOPER', 'ADMIN'])(req);
-}
-
-/**
  * Middleware to require admin role for Pages Router
  */
 export function requireAdmin(

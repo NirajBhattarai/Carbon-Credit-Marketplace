@@ -20,7 +20,7 @@ export interface User {
   walletAddress: string;
   username?: string;
   email?: string;
-  role: 'USER' | 'DEVELOPER' | 'ADMIN';
+  role: 'USER' | 'ADMIN';
   isVerified: boolean;
   createdAt: string;
   // Legacy fields for backward compatibility

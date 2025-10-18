@@ -77,10 +77,10 @@ async function registerDevice(req: NextApiRequest, res: NextApiResponse) {
     }
 
     // Validate device type
-    if (!['SEQUESTER', 'EMITTER'].includes(data.deviceType)) {
+    if (data.deviceType !== 'SEQUESTER') {
       return res.status(400).json({
         success: false,
-        message: 'Invalid device type. Must be SEQUESTER or EMITTER',
+        message: 'Invalid device type. Only SEQUESTER devices are supported',
       });
     }
 

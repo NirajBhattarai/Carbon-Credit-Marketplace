@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { db, iotDevices, deviceData, eq } from '@/lib/db';
+import { db, iotKeys, company, companyCredit, deviceCreditHistory, eq, and } from '@/lib/db';
 import { IoTDataProcessor, IoTDataPayload } from '@/lib/services/iot-processor';
 
 export default async function handler(
@@ -43,7 +43,8 @@ async function receiveIoTData(req: NextApiRequest, res: NextApiResponse) {
       return await processCarbonCreditData(req, res);
     }
 
-    // Legacy format validation
+    // Legacy format validation (commented out since tables don't exist)
+    /*
     if (
       !data.deviceId ||
       typeof data.co2Value !== 'number' ||
@@ -94,6 +95,13 @@ async function receiveIoTData(req: NextApiRequest, res: NextApiResponse) {
       timestamp: new Date().toISOString(),
       dataPointId: dataPoint[0].id,
     });
+    */
+    
+    // For now, return error for legacy format since tables don't exist
+    return res.status(400).json({
+      success: false,
+      message: 'Legacy format not supported. Please use the new carbon credit format with apiKey.',
+    });
   } catch (error) {
     console.error('Data processing error:', error);
     res.status(500).json({
@@ -109,7 +117,7 @@ async function processCarbonCreditData(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const { deviceId, ...payload } = req.body;
+  const { deviceId, apiKey, ...payload } = req.body;
 
   try {
     // Validate required fields
@@ -119,6 +127,36 @@ async function processCarbonCreditData(
         message: 'Missing required field: deviceId',
       });
     }
+
+    if (!apiKey) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required field: apiKey',
+      });
+    }
+
+    // Validate API key and get company
+    const apiKeyData = await db
+      .select({
+        keyId: iotKeys.keyId,
+        keyValue: iotKeys.keyValue,
+        companyId: iotKeys.companyId,
+        companyName: company.companyName,
+        walletAddress: company.walletAddress,
+      })
+      .from(iotKeys)
+      .innerJoin(company, eq(iotKeys.companyId, company.companyId))
+      .where(eq(iotKeys.keyValue, apiKey))
+      .limit(1);
+
+    if (apiKeyData.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid API key',
+      });
+    }
+
+    const { companyId, companyName, walletAddress } = apiKeyData[0];
 
     // Validate payload format
     const iotPayload: IoTDataPayload = {
@@ -130,34 +168,29 @@ async function processCarbonCreditData(
       t: payload.t || Math.floor(Date.now() / 1000),
     };
 
-    // Check if device exists
-    const device = await db.query.iotDevices.findFirst({
-      where: eq(iotDevices.deviceId, deviceId),
-    });
+    // Check if device exists and belongs to the company
+    // For now, we'll assume the device exists if the API key is valid
+    // In a real implementation, you'd have a devices table linked to companies
 
-    if (!device) {
-      return res.status(404).json({
-        success: false,
-        message: `Device ${deviceId} not found`,
-      });
-    }
-
-    // Process the IoT data and update user credits
-    const processedData = await IoTDataProcessor.processIoTData(
+    // Process the IoT data and update company credits
+    const processedData = await processCompanyCredits(
       deviceId,
-      iotPayload
+      iotPayload,
+      companyId,
+      companyName
     );
 
-    // Update device last seen
-    await db
-      .update(iotDevices)
-      .set({ lastSeen: new Date() })
-      .where(eq(iotDevices.deviceId, deviceId));
+    // Update device last seen (commented out since iotDevices table doesn't exist)
+    // await db
+    //   .update(iotDevices)
+    //   .set({ lastSeen: new Date() })
+    //   .where(eq(iotDevices.deviceId, deviceId));
 
     res.status(201).json({
       success: true,
       message: 'Carbon credit data processed successfully',
       timestamp: new Date().toISOString(),
+      company: companyName,
       processedData: {
         credits: processedData.credits,
         co2Reduced: processedData.co2Reduced,
@@ -173,6 +206,81 @@ async function processCarbonCreditData(
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
+}
+
+// Process company credits from IoT data
+async function processCompanyCredits(
+  deviceId: string,
+  payload: IoTDataPayload,
+  companyId: number,
+  companyName: string
+) {
+  // Calculate credits from the payload
+  const credits = payload.c || 0;
+  const co2Reduced = payload.cr || 0;
+  const energySaved = payload.e || 0;
+  const temperatureImpact = 0; // Calculate based on humidity if needed
+  const humidityImpact = payload.h || 0;
+  const isOnline = payload.o || false;
+
+  // Get or create company credit record
+  let companyCreditRecord = await db
+    .select()
+    .from(companyCredit)
+    .where(eq(companyCredit.companyId, companyId))
+    .limit(1);
+
+  if (companyCreditRecord.length === 0) {
+    // Create new company credit record
+    const [newCredit] = await db
+      .insert(companyCredit)
+      .values({
+        companyId,
+        totalCredit: credits.toString(),
+        currentCredit: credits.toString(),
+        soldCredit: '0.00',
+      })
+      .returning();
+    companyCreditRecord = [newCredit];
+  } else {
+    // Update existing company credit record
+    const currentTotal = parseFloat(companyCreditRecord[0].totalCredit);
+    const currentCurrent = parseFloat(companyCreditRecord[0].currentCredit);
+    
+    const newTotal = currentTotal + credits;
+    const newCurrent = currentCurrent + credits;
+
+    await db
+      .update(companyCredit)
+      .set({
+        totalCredit: newTotal.toString(),
+        currentCredit: newCurrent.toString(),
+      })
+      .where(eq(companyCredit.companyId, companyId));
+
+    companyCreditRecord[0].totalCredit = newTotal.toString();
+    companyCreditRecord[0].currentCredit = newCurrent.toString();
+  }
+
+  // Add to device credit history
+  await db.insert(deviceCreditHistory).values({
+    deviceId: parseInt(deviceId) || 0, // Assuming deviceId can be converted to integer
+    sequesteredCredits: credits.toString(),
+    timeIntervalStart: new Date(payload.t * 1000),
+    timeIntervalEnd: new Date(),
+  });
+
+  console.log(`💰 Company ${companyName} earned ${credits} credits from device ${deviceId}`);
+
+  return {
+    credits,
+    co2Reduced,
+    energySaved,
+    temperatureImpact,
+    humidityImpact,
+    isOnline,
+    timestamp: new Date(payload.t * 1000).toISOString(),
+  };
 }
 
 // Health check
@@ -195,10 +303,4 @@ async function healthCheck(req: NextApiRequest, res: NextApiResponse) {
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
-}
-
-// Helper function
-function generateDataHash(data: any): string {
-  const crypto = require('crypto');
-  return crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
 }

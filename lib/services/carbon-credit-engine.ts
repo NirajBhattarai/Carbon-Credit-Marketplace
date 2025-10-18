@@ -91,9 +91,7 @@ export class CarbonCreditEngine {
         throw new Error(`Device ${deviceId} not found`);
       }
 
-      if (device[0].deviceType !== 'SEQUESTER') {
-        throw new Error(`Device ${deviceId} is not a sequester device`);
-      }
+      // All devices are now sequester devices
 
       // Get data points in time range
       const dataPoints = await db

@@ -1,8 +1,24 @@
+CREATE TYPE "public"."api_key_status" AS ENUM('ACTIVE', 'INACTIVE', 'SUSPENDED', 'EXPIRED');--> statement-breakpoint
 CREATE TYPE "public"."application_status" AS ENUM('ACTIVE', 'INACTIVE', 'SUSPENDED');--> statement-breakpoint
-CREATE TYPE "public"."device_type" AS ENUM('SEQUESTER', 'EMITTER');--> statement-breakpoint
+CREATE TYPE "public"."device_type" AS ENUM('SEQUESTER');--> statement-breakpoint
 CREATE TYPE "public"."transaction_status" AS ENUM('PENDING', 'CONFIRMED', 'FAILED');--> statement-breakpoint
 CREATE TYPE "public"."transaction_type" AS ENUM('MINT', 'BURN');--> statement-breakpoint
 CREATE TYPE "public"."user_role" AS ENUM('USER', 'DEVELOPER', 'ADMIN');--> statement-breakpoint
+CREATE TABLE "api_keys" (
+	"id" text PRIMARY KEY NOT NULL,
+	"application_id" text NOT NULL,
+	"key_hash" text NOT NULL,
+	"key_prefix" text NOT NULL,
+	"name" text NOT NULL,
+	"status" "api_key_status" DEFAULT 'ACTIVE' NOT NULL,
+	"permissions" json DEFAULT '["read:devices","write:devices"]'::json NOT NULL,
+	"last_used" timestamp,
+	"expires_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "api_keys_key_hash_unique" UNIQUE("key_hash")
+);
+--> statement-breakpoint
 CREATE TABLE "applications" (
 	"id" text PRIMARY KEY NOT NULL,
 	"wallet_address" text NOT NULL,
@@ -10,11 +26,9 @@ CREATE TABLE "applications" (
 	"description" text,
 	"website" text,
 	"status" "application_status" DEFAULT 'ACTIVE' NOT NULL,
-	"api_key" text,
 	"metadata" json,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "applications_api_key_unique" UNIQUE("api_key")
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "carbon_credit_transactions" (

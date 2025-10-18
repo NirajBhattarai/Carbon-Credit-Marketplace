@@ -32,11 +32,8 @@ const MQTT_CONFIG = {
 
 // Topic patterns from the IoT devices
 const TOPICS = {
-  CARBON_EMITTER: 'carbon_emitter/#',
   CARBON_SEQUESTER: 'carbon_sequester/#',
-  EMITTER_DATA: 'carbon_emitter/+/sensor_data',
   SEQUESTER_DATA: 'carbon_sequester/+/sensor_data',
-  COMMANDS: 'carbon_emitter/commands',
   // New pattern for API key based topics
   API_KEY_TOPICS: 'carbon_credit/+/#', // Subscribe to all topics under carbon_credit/{apiKey}/#
 };
@@ -48,7 +45,7 @@ export interface SensorData {
   ip?: string;
   location?: string;
   type?: string;
-  device_type?: 'SEQUESTER' | 'EMITTER';
+  device_type?: 'SEQUESTER';
   version?: string;
   // New format with avg/max/min values
   avg_c?: number; // Average CO2 reading
@@ -66,7 +63,7 @@ export interface SensorData {
   e: number; // Emissions
   o: boolean; // Offset status
   t: number; // Timestamp
-  credits_avail?: number; // Available credits (for emitters)
+  credits_avail?: number; // Available credits
   // Heartbeat fields
   status?: string; // Device status
   uptime?: number; // Device uptime
@@ -84,7 +81,7 @@ export interface MQTTMessage {
   topic: string;
   payload: SensorData;
   timestamp: number;
-  deviceType: 'SEQUESTER' | 'EMITTER';
+  deviceType: 'SEQUESTER';
 }
 
 export interface MQTTConnectionState {
@@ -102,7 +99,6 @@ interface MQTTContextType {
   // Data
   messages: MQTTMessage[];
   sequesterDevices: Map<string, SensorData>;
-  emitterDevices: Map<string, SensorData>;
 
   // Actions
   connect: () => void;
@@ -113,7 +109,7 @@ interface MQTTContextType {
 
   // Utilities
   getLatestData: (deviceId: string) => SensorData | null;
-  getDeviceCount: () => { sequesters: number; emitters: number };
+  getDeviceCount: () => { sequesters: number };
   clearMessages: () => void;
 }
 
@@ -133,9 +129,6 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
   const [sequesterDevices, setSequesterDevices] = useState<
     Map<string, SensorData>
   >(new Map());
-  const [emitterDevices, setEmitterDevices] = useState<Map<string, SensorData>>(
-    new Map()
-  );
 
   // Initialize InfluxDB on mount
   useEffect(() => {
@@ -284,7 +277,7 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
           deviceId: deviceId,
           deviceType:
             deviceData.device_type ||
-            (deviceData.type === 'emitter' ? 'EMITTER' : 'SEQUESTER'),
+            (deviceData.type === 'sequester' ? 'SEQUESTER' : 'SEQUESTER'),
           location: deviceData.location || 'Unknown Location',
           projectName: `Auto-created Device ${new Date().toISOString().split('T')[0]}`,
           description: `Device auto-created from MQTT data on ${new Date().toISOString()}`,
@@ -346,29 +339,16 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
         }
 
         // Determine device type based on topic or payload
-        let deviceType: 'SEQUESTER' | 'EMITTER' = 'SEQUESTER';
+        let deviceType: 'SEQUESTER' = 'SEQUESTER';
 
         // For new format (API key as topic), determine type from payload or default to SEQUESTER
         if (topic.startsWith('cc_')) {
           // Check payload for device type hints
-          if (data.type === 'emitter' || data.device_type === 'EMITTER') {
-            deviceType = 'EMITTER';
-          } else if (
-            data.type === 'sequester' ||
-            data.device_type === 'SEQUESTER'
-          ) {
-            deviceType = 'SEQUESTER';
-          } else {
-            // Default to SEQUESTER for new format
-            deviceType = 'SEQUESTER';
-          }
+          // All devices are now sequester devices
+          deviceType = 'SEQUESTER';
         } else {
-          // Old format: determine from topic path
-          if (topic.includes('carbon_emitter')) {
-            deviceType = 'EMITTER';
-          } else if (topic.includes('carbon_sequester')) {
-            deviceType = 'SEQUESTER';
-          }
+          // Old format: all devices are now sequester devices
+          deviceType = 'SEQUESTER';
         }
 
         // Add wallet address and API key to sensor data
@@ -582,19 +562,12 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
         topic.split('/')[1] ||
         'unknown';
 
-      if (message.deviceType === 'SEQUESTER') {
-        setSequesterDevices(prev => {
-          const newMap = new Map(prev);
-          newMap.set(deviceId, message.payload);
-          return newMap;
-        });
-      } else {
-        setEmitterDevices(prev => {
-          const newMap = new Map(prev);
-          newMap.set(deviceId, message.payload);
-          return newMap;
-        });
-      }
+      // All devices are now sequester devices
+      setSequesterDevices(prev => {
+        const newMap = new Map(prev);
+        newMap.set(deviceId, message.payload);
+        return newMap;
+      });
     },
     [parseMessage]
   );
@@ -732,19 +705,18 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
   const getLatestData = useCallback(
     (deviceId: string): SensorData | null => {
       return (
-        sequesterDevices.get(deviceId) || emitterDevices.get(deviceId) || null
+        sequesterDevices.get(deviceId) || null
       );
     },
-    [sequesterDevices, emitterDevices]
+    [sequesterDevices]
   );
 
   // Get device counts
   const getDeviceCount = useCallback(() => {
     return {
       sequesters: sequesterDevices.size,
-      emitters: emitterDevices.size,
     };
-  }, [sequesterDevices, emitterDevices]);
+  }, [sequesterDevices]);
 
   // Clear messages
   const clearMessages = useCallback(() => {
@@ -763,15 +735,13 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
   // Auto-subscribe to main topics when connected
   useEffect(() => {
     if (client?.connected) {
-      // Subscribe to carbon emitter and sequester topics (old format)
-      subscribe(TOPICS.CARBON_EMITTER);
+      // Subscribe to carbon sequester topics (old format)
       subscribe(TOPICS.CARBON_SEQUESTER);
 
       // Subscribe to API key based topics (new format)
       subscribe(TOPICS.API_KEY_TOPICS);
 
       console.log('📡 Subscribed to MQTT topics:', {
-        carbonEmitter: TOPICS.CARBON_EMITTER,
         carbonSequester: TOPICS.CARBON_SEQUESTER,
         apiKeyTopics: TOPICS.API_KEY_TOPICS,
       });
@@ -781,8 +751,7 @@ export function MQTTProvider({ children }: { children: React.ReactNode }) {
   const contextValue: MQTTContextType = {
     connectionState,
     messages,
-    sequesterDevices,
-    emitterDevices,
+      sequesterDevices,
     connect,
     disconnect,
     subscribe,

@@ -39,21 +39,21 @@ export default function HomePage() {
 
             {/* CTA Buttons */}
             <div className='flex flex-col sm:flex-row gap-4 justify-center items-center px-4'>
-              <Link href='/iot-devices' className='w-full sm:w-auto'>
+              <Link href='/companies' className='w-full sm:w-auto'>
                 <Button
                   size='xl'
                   className='w-full sm:w-auto bg-white text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300'
                 >
-                  Manage IoT Devices
+                  View Companies
                 </Button>
               </Link>
-              <Link href='/developer' className='w-full sm:w-auto'>
+              <Link href='/credit-trading' className='w-full sm:w-auto'>
                 <Button
                   variant='outline'
                   size='xl'
                   className='w-full sm:w-auto border-2 border-white text-white hover:bg-white hover:text-emerald-600 backdrop-blur-sm transition-all duration-300'
                 >
-                  Developer Dashboard
+                  Trade Credits
                 </Button>
               </Link>
             </div>
@@ -77,63 +77,60 @@ export default function HomePage() {
           <div className='grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8'>
             <div className='group text-center p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 hover:shadow-lg hover:shadow-blue-100 transition-all duration-300 hover:-translate-y-1'>
               <div className='w-16 h-16 lg:w-20 lg:h-20 bg-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300'>
-                <span className='text-2xl lg:text-3xl'>📱</span>
+                <span className='text-2xl lg:text-3xl'>🏢</span>
               </div>
               <h3 className='text-xl lg:text-2xl font-semibold text-gray-900 mb-3 lg:mb-4'>
-                IoT Device Management
+                Company Management
               </h3>
               <p className='text-gray-600 mb-6 lg:mb-8 leading-relaxed'>
-                Register, configure, and monitor your environmental sensors with
-                our comprehensive device management platform.
+                View all companies participating in the carbon credit marketplace with their credit balances and statistics.
               </p>
-              <Link href='/iot-devices'>
+              <Link href='/companies'>
                 <Button
                   size='lg'
                   className='bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all duration-300'
                 >
-                  Manage Devices
+                  View Companies
                 </Button>
               </Link>
             </div>
 
             <div className='group text-center p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-green-50 to-green-100 border border-green-200 hover:shadow-lg hover:shadow-green-100 transition-all duration-300 hover:-translate-y-1'>
               <div className='w-16 h-16 lg:w-20 lg:h-20 bg-green-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300'>
-                <span className='text-2xl lg:text-3xl'>📊</span>
+                <span className='text-2xl lg:text-3xl'>💰</span>
               </div>
               <h3 className='text-xl lg:text-2xl font-semibold text-gray-900 mb-3 lg:mb-4'>
-                Data Analytics
+                Credit Trading
               </h3>
               <p className='text-gray-600 mb-6 lg:mb-8 leading-relaxed'>
-                Analyze environmental data trends, generate reports, and track
-                carbon credit generation over time.
+                Buy and sell carbon credits in a transparent marketplace with real-time pricing and availability.
               </p>
-              <Link href='/iot-data'>
+              <Link href='/credit-trading'>
                 <Button
                   size='lg'
                   className='bg-green-600 hover:bg-green-700 text-white shadow-md hover:shadow-lg transition-all duration-300'
                 >
-                  View Analytics
+                  Trade Credits
                 </Button>
               </Link>
             </div>
 
             <div className='group text-center p-6 lg:p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 hover:shadow-lg hover:shadow-purple-100 transition-all duration-300 hover:-translate-y-1'>
               <div className='w-16 h-16 lg:w-20 lg:h-20 bg-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300'>
-                <span className='text-2xl lg:text-3xl'>⚙️</span>
+                <span className='text-2xl lg:text-3xl'>📊</span>
               </div>
               <h3 className='text-xl lg:text-2xl font-semibold text-gray-900 mb-3 lg:mb-4'>
-                Developer Tools
+                IoT Monitoring
               </h3>
               <p className='text-gray-600 mb-6 lg:mb-8 leading-relaxed'>
-                Access APIs, manage applications, and integrate IoT data into
-                your environmental monitoring solutions.
+                Monitor IoT devices and real-time credit generation across all companies in the marketplace.
               </p>
-              <Link href='/developer'>
+              <Link href='/iot-data'>
                 <Button
                   size='lg'
                   className='bg-purple-600 hover:bg-purple-700 text-white shadow-md hover:shadow-lg transition-all duration-300'
                 >
-                  Developer Portal
+                  View Analytics
                 </Button>
               </Link>
             </div>
@@ -226,7 +223,7 @@ export default function HomePage() {
             credit management
           </p>
           <div className='flex flex-col sm:flex-row gap-4 justify-center items-center'>
-            <Link href='/iot-devices' className='w-full sm:w-auto'>
+            <Link href='/companies' className='w-full sm:w-auto'>
               <Button
                 size='xl'
                 className='w-full sm:w-auto bg-white text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300'
@@ -234,13 +231,13 @@ export default function HomePage() {
                 Get Started
               </Button>
             </Link>
-            <Link href='/developer' className='w-full sm:w-auto'>
+            <Link href='/credit-trading' className='w-full sm:w-auto'>
               <Button
                 variant='outline'
                 size='xl'
                 className='w-full sm:w-auto border-2 border-white text-white hover:bg-white hover:text-emerald-600 backdrop-blur-sm transition-all duration-300'
               >
-                Developer Resources
+                Start Trading
               </Button>
             </Link>
           </div>

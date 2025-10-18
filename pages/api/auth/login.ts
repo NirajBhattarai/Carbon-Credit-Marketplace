@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { db } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { usertable } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { verifyWalletSignature } from '@/lib/auth/jwt';
 
@@ -39,32 +39,20 @@ export default async function handler(
     // Check if user already exists
     let user = await db
       .select()
-      .from(users)
-      .where(eq(users.walletAddress, walletAddress))
+      .from(usertable)
+      .where(eq(usertable.walletAddress, walletAddress))
       .limit(1);
 
     if (user.length === 0) {
       // Create new user
       const newUser = await db
-        .insert(users)
+        .insert(usertable)
         .values({
           walletAddress,
-          username: username || `user_${walletAddress.slice(0, 8)}`,
-          email: email || null,
-          role: 'USER',
-          isVerified: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         })
         .returning();
 
       user = newUser;
-    } else {
-      // Update last seen timestamp
-      await db
-        .update(users)
-        .set({ updatedAt: new Date() })
-        .where(eq(users.walletAddress, walletAddress));
     }
 
     const userData = user[0];
@@ -74,7 +62,7 @@ export default async function handler(
     const token = generateJWT({
       userId: userData.walletAddress, // Use walletAddress as userId since it's now the primary key
       walletAddress: userData.walletAddress,
-      role: userData.role,
+      role: 'USER', // Default role since usertable doesn't store role
     });
 
     return res.status(200).json({
@@ -83,10 +71,10 @@ export default async function handler(
       user: {
         id: userData.walletAddress, // Use walletAddress as id since it's now the primary key
         walletAddress: userData.walletAddress,
-        username: userData.username,
-        email: userData.email,
-        role: userData.role,
-        isVerified: userData.isVerified,
+        username: username || `user_${walletAddress.slice(0, 8)}`, // Use provided username or generate one
+        email: email || null, // Use provided email or null
+        role: 'USER', // Default role
+        isVerified: false, // Default verification status
       },
     });
   } catch (error) {

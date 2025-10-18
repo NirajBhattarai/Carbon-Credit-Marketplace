@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { db, applications, users } from '@/lib/db';
+import { db, applications, apiKeys, usertable } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { RedisService } from '../../../lib/redis';
 
@@ -31,17 +31,25 @@ export default async function handler(
 
     console.log('🔑 Cache miss - Querying wallet address from database...');
 
-    // Query database to get wallet address from API key
+    // Extract the prefix from the full API key (format: cc_prefix)
+    const apiKeyPrefix = apiKey.startsWith('cc_') ? apiKey.substring(3) : apiKey;
+
+    // Query database to get wallet address from API key using the new schema
     const result = await db
       .select({
-        walletAddress: users.walletAddress,
-        username: users.username,
+        walletAddress: usertable.walletAddress,
+        username: `user_${usertable.walletAddress.slice(0, 8)}`,
         applicationName: applications.name,
         applicationId: applications.id,
+        apiKeyId: apiKeys.id,
+        apiKeyName: apiKeys.name,
+        keyPrefix: apiKeys.keyPrefix,
+        apiKeyStatus: apiKeys.status,
       })
-      .from(applications)
-      .innerJoin(users, eq(applications.walletAddress, users.walletAddress))
-      .where(eq(applications.apiKey, apiKey))
+      .from(apiKeys)
+      .innerJoin(applications, eq(apiKeys.applicationId, applications.id))
+      .innerJoin(usertable, eq(applications.walletAddress, usertable.walletAddress))
+      .where(eq(apiKeys.keyPrefix, apiKeyPrefix))
       .limit(1);
 
     if (result.length === 0) {
@@ -51,7 +59,7 @@ export default async function handler(
       });
     }
 
-    const { walletAddress, username, applicationName, applicationId } =
+    const { walletAddress, username, applicationName, applicationId, apiKeyId, apiKeyName, keyPrefix, apiKeyStatus } =
       result[0];
 
     const responseData = {
@@ -59,7 +67,11 @@ export default async function handler(
       username,
       applicationName,
       applicationId,
-      apiKey,
+      apiKeyId,
+      apiKeyName,
+      keyPrefix,
+      apiKeyStatus,
+      fullApiKey: apiKey,
     };
 
     // Cache the result

@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { db, iotDevices, applications, users, eq, and } from '@/lib/db';
+import { db, iotDevices, applications, apiKeys, usertable, eq, and } from '@/lib/db';
 
 interface AutoCreateDevicePayload {
   deviceId: string;
@@ -30,21 +30,26 @@ export default async function handler(
     }
 
     // Validate device type
-    if (!['SEQUESTER', 'EMITTER'].includes(data.deviceType)) {
+    if (data.deviceType !== 'SEQUESTER') {
       return res.status(400).json({
         success: false,
-        message: 'Invalid device type. Must be SEQUESTER or EMITTER',
+        message: 'Invalid device type. Only SEQUESTER devices are supported',
       });
     }
 
-    // Get wallet address from API key
+    // Extract the prefix from the full API key (format: cc_prefix)
+    const apiKeyPrefix = data.apiKey.startsWith('cc_') ? data.apiKey.substring(3) : data.apiKey;
+
+    // Get wallet address from API key using the new schema
     const application = await db
       .select({
         walletAddress: applications.walletAddress,
         applicationName: applications.name,
+        applicationId: applications.id,
       })
-      .from(applications)
-      .where(eq(applications.apiKey, data.apiKey))
+      .from(apiKeys)
+      .innerJoin(applications, eq(apiKeys.applicationId, applications.id))
+      .where(eq(apiKeys.keyPrefix, apiKeyPrefix))
       .limit(1);
 
     if (application.length === 0) {
@@ -54,7 +59,7 @@ export default async function handler(
       });
     }
 
-    const { walletAddress, applicationName } = application[0];
+    const { walletAddress, applicationName, applicationId } = application[0];
 
     console.log(
       `🔍 Checking device existence for deviceId: ${data.deviceId}, wallet: ${walletAddress}`

@@ -22,36 +22,46 @@ export default async function handler(
 
     // Fetch user data from database
     const { db } = await import('@/lib/db');
-    const { users } = await import('@/lib/db/schema');
+    const { usertable } = await import('@/lib/db/schema');
 
     const userData = await db
       .select()
-      .from(users)
-      .where(eq(users.walletAddress, user.walletAddress))
+      .from(usertable)
+      .where(eq(usertable.walletAddress, user.walletAddress))
       .limit(1);
 
     if (userData.length === 0) {
       // Create new user if doesn't exist
       const newUser = await db
-        .insert(users)
+        .insert(usertable)
         .values({
           walletAddress: user.walletAddress,
-          username: `user_${user.walletAddress.slice(0, 8)}`,
-          role: user.role || 'USER',
-          isVerified: false,
-          createdAt: new Date(),
         })
         .returning();
 
       return res.status(200).json({
         success: true,
-        user: newUser[0],
+        user: {
+          id: newUser[0].walletAddress,
+          walletAddress: newUser[0].walletAddress,
+          username: `user_${user.walletAddress.slice(0, 8)}`,
+          email: null,
+          role: user.role || 'USER',
+          isVerified: false,
+        },
       });
     }
 
     return res.status(200).json({
       success: true,
-      user: userData[0],
+      user: {
+        id: userData[0].walletAddress,
+        walletAddress: userData[0].walletAddress,
+        username: `user_${userData[0].walletAddress.slice(0, 8)}`,
+        email: null,
+        role: user.role || 'USER',
+        isVerified: false,
+      },
     });
   } catch (error) {
     console.error('Get user error:', error);

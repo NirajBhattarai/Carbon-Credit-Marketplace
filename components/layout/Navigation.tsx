@@ -7,7 +7,7 @@ import {
   CustomConnectButton,
   WalletInfo,
   EnhancedConnectButton,
-} from '@/components/ConnectButton';
+} from '@/components/auth/ConnectButton';
 import { useAccount } from 'wagmi';
 import { useUser } from '@/lib/auth/context';
 import { APP_CONFIG, DESIGN_SYSTEM } from '@/lib/constants';
@@ -20,10 +20,11 @@ interface NavigationItem {
 }
 
 const navigationItems: NavigationItem[] = [
+  { name: 'Companies', href: '/companies', icon: '🏢' },
+  { name: 'Credit Trading', href: '/credit-trading', icon: '💰' },
   { name: 'IoT Devices', href: '/iot-devices', icon: '📱' },
   { name: 'IoT Data', href: '/iot-data', icon: '📊' },
-  { name: 'User Credits', href: '/user-credits', icon: '🏆' },
-  { name: 'Developer', href: '/developer', icon: '⚙️' },
+  { name: 'My Company', href: '/my-company', icon: '🏢' },
 ];
 
 export function Navigation() {

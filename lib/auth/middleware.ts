@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { NextApiRequest, NextApiResponse } from 'next';
 import { verifyJWT, verifyApiKeyJWT, extractTokenFromHeader } from './jwt';
 import { db } from '@/lib/db';
-import { users, applications } from '@/lib/db/schema';
+import { usertable, applications } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export interface AuthenticatedRequest extends NextRequest {
@@ -58,7 +58,7 @@ export async function authenticateJWT(
   // Verify user exists in database, create if not found
   let user = await db
     .select()
-    .from(users)
+    .from(usertable)
     .where(eq(users.walletAddress, payload.walletAddress))
     .limit(1);
 
@@ -70,7 +70,7 @@ export async function authenticateJWT(
         .values({
           walletAddress: payload.walletAddress,
           username: `user_${payload.walletAddress.slice(0, 8)}`,
-          role: (payload.role as 'USER' | 'DEVELOPER' | 'ADMIN') || 'USER',
+          role: (payload.role as 'USER' | 'ADMIN') || 'USER',
           isVerified: false,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -125,7 +125,6 @@ export async function authenticateApiKey(
       walletAddress: applications.walletAddress,
       name: applications.name,
       status: applications.status,
-      apiKey: applications.apiKey,
     })
     .from(applications)
     .where(eq(applications.id, payload.applicationId))
@@ -176,15 +175,6 @@ export function requireRole(roles: string[]) {
 
     return null;
   };
-}
-
-/**
- * Middleware to require developer role
- */
-export function requireDeveloper(
-  request: NextRequest
-): Promise<NextResponse | null> {
-  return requireRole(['DEVELOPER', 'ADMIN'])(request);
 }
 
 /**
@@ -261,7 +251,7 @@ export async function authenticateJWTPages(
   );
   let user = await db
     .select()
-    .from(users)
+    .from(usertable)
     .where(eq(users.walletAddress, payload.walletAddress))
     .limit(1);
 
@@ -277,7 +267,7 @@ export async function authenticateJWTPages(
         .values({
           walletAddress: payload.walletAddress,
           username: `user_${payload.walletAddress.slice(0, 8)}`,
-          role: (payload.role as 'USER' | 'DEVELOPER' | 'ADMIN') || 'USER',
+          role: (payload.role as 'USER' | 'ADMIN') || 'USER',
           isVerified: false,
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -368,7 +358,6 @@ export async function authenticateApiKeyPages(
       walletAddress: applications.walletAddress,
       name: applications.name,
       status: applications.status,
-      apiKey: applications.apiKey,
     })
     .from(applications)
     .where(eq(applications.id, payload.applicationId))

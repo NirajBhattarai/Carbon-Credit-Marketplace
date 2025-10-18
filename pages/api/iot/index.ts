@@ -17,14 +17,14 @@ interface IoTDataPayload {
   energyValue: number;
   temperature: number;
   humidity: number;
-  deviceType: 'SEQUESTER' | 'EMITTER';
+  deviceType: 'SEQUESTER';
   location?: string;
   projectName?: string;
 }
 
 interface DeviceRegistrationPayload {
   deviceId: string;
-  deviceType: 'SEQUESTER' | 'EMITTER';
+  deviceType: 'SEQUESTER';
   location: string;
   projectName: string;
   description?: string;
@@ -63,12 +63,8 @@ function generateDataHash(data: any): string {
 }
 
 function calculateCreditAmount(deviceType: string, accData: any): number {
-  if (deviceType === 'SEQUESTER') {
-    return Math.floor(accData.totalCo2 / 1000);
-  } else if (deviceType === 'EMITTER') {
-    return Math.floor(accData.totalCo2 / 1000);
-  }
-  return 0;
+  // All devices are now sequester devices
+  return Math.floor(accData.totalCo2 / 1000);
 }
 
 async function updateAccumulatedData(
@@ -136,7 +132,7 @@ async function checkThresholds(deviceId: string) {
 
 async function triggerCreditAction(device: any, amount: number, accData: any) {
   try {
-    const transactionType = device.deviceType === 'SEQUESTER' ? 'MINT' : 'BURN';
+    const transactionType = 'MINT'; // All devices are now sequester devices
 
     // Create transaction record
     const transaction = await db
@@ -248,7 +244,7 @@ async function registerDevice(req: NextApiRequest, res: NextApiResponse) {
       .insert(iotDevices)
       .values({
         deviceId: data.deviceId,
-        applicationId: 'default-application', // TODO: Get from request context
+        walletAddress: 'default-wallet', // TODO: Get from request context
         deviceType: data.deviceType,
         location: data.location,
         projectName: data.projectName,
@@ -260,8 +256,8 @@ async function registerDevice(req: NextApiRequest, res: NextApiResponse) {
 
     // Set default thresholds
     deviceThresholds.set(data.deviceId, {
-      co2Threshold: data.deviceType === 'SEQUESTER' ? 1000 : 1000,
-      energyThreshold: data.deviceType === 'SEQUESTER' ? 500 : 500,
+      co2Threshold: 1000, // All devices use sequester thresholds
+      energyThreshold: 500, // All devices use sequester thresholds
       timeWindow: 3600, // 1 hour
     });
 
